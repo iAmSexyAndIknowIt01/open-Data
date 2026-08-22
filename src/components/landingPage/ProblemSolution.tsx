@@ -20,7 +20,7 @@ export default function ProblemSolution() {
       />
 
       {/* Decorative soft glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[350px] bg-blue-200/50 blur-[140px] rounded-full pointer-events-none -z-10" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-175 h-87.5 bg-blue-200/50 blur-[140px] rounded-full pointer-events-none -z-10" />
 
       <div className="max-w-7xl mx-auto px-6 relative z-10">
         
@@ -30,7 +30,7 @@ export default function ProblemSolution() {
             Яагаад зайлшгүй хэрэгтэй вэ?
           </span>
           <h2 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight mt-4">
-            Өдөр тутмын хүндрэлийг <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-sky-500">хэрхэн шийдэх вэ?</span>
+            Өдөр тутмын хүндрэлийг <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-600 to-sky-500">хэрхэн шийдэх вэ?</span>
           </h2>
           <p className="text-slate-600 mt-4 text-base sm:text-lg leading-relaxed">
             Дэвтэр дэвтэр тэмдэглэл болон эмх замбараагүй оочер дарааллыг халж, бизнесийнхээ үр ашгийг бүрэн дээд хэмжээнд хүргээрэй.
@@ -42,7 +42,7 @@ export default function ProblemSolution() {
           
           {/* АСУУДАЛ: Хуучин арга барил */}
           <div className="bg-white/95 backdrop-blur-md border border-slate-200/90 p-8 sm:p-10 rounded-3xl shadow-sm relative overflow-hidden flex flex-col justify-between transition-all hover:shadow-md">
-            <div className="absolute top-0 right-0 w-36 h-36 bg-red-100/30 rounded-bl-full pointer-events-none -z-0" />
+            <div className="absolute top-0 right-0 w-36 h-36 bg-red-100/30 rounded-bl-full pointer-events-none z-0" />
             
             <div className="relative z-10">
               <div className="flex items-center gap-2.5 mb-6">
@@ -91,7 +91,7 @@ export default function ProblemSolution() {
           </div>
 
           {/* ШИЙДЭЛ: Open Data CRM */}
-          <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-sky-700 text-white p-8 sm:p-10 rounded-3xl shadow-2xl shadow-blue-500/20 relative overflow-hidden flex flex-col justify-between transition-all hover:scale-[1.01]">
+          <div className="bg-linear-to-br from-blue-600 via-blue-700 to-sky-700 text-white p-8 sm:p-10 rounded-3xl shadow-2xl shadow-blue-500/20 relative overflow-hidden flex flex-col justify-between transition-all hover:scale-[1.01]">
             <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-bl-full pointer-events-none" />
             
             <div className="relative z-10">
