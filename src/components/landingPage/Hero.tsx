@@ -5,7 +5,7 @@ export default function Hero() {
   return (
     <section className="relative pt-20 pb-32 overflow-hidden w-full bg-white">
       {/* Subtle modern accent glow */}
-      <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-blue-50/60 blur-[120px] rounded-full pointer-events-none -z-10" />
+      <div className="absolute top-10 left-1/2 -translate-x-1/2 w-150 h-75 bg-blue-50/60 blur-[120px] rounded-full pointer-events-none -z-10" />
 
       <div className="max-w-7xl mx-auto px-6 relative z-10">
         <div className="grid lg:grid-cols-12 gap-12 items-center">
@@ -15,7 +15,7 @@ export default function Hero() {
             <div className="bg-slate-50/80 backdrop-blur-xl border border-slate-100 p-6 sm:p-8 rounded-3xl shadow-xl shadow-slate-200/50 relative">
               
               {/* Floating Badge */}
-              <div className="absolute -top-4 -right-4 bg-gradient-to-r from-blue-600 to-sky-500 text-white text-xs font-bold px-4 py-2 rounded-2xl shadow-lg flex items-center gap-1.5">
+              <div className="absolute -top-4 -right-4 bg-linear-to-r from-blue-600 to-sky-500 text-white text-xs font-bold px-4 py-2 rounded-2xl shadow-lg flex items-center gap-1.5">
                 <Sparkles size={14} /> Live Preview
               </div>
 
@@ -76,7 +76,7 @@ export default function Hero() {
             </div>
             
             <h1 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight leading-[1.15]">
-              Үйлчлүүлэгчдийнхээ мэдээллийг алдаж, оочер дарааллаас болж <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-sky-500 underline decoration-sky-200">орлогоо бүү алд.</span>
+              Үйлчлүүлэгчдийнхээ мэдээллийг алдаж, оочер дарааллаас болж <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-600 to-sky-500 underline decoration-sky-200">орлогоо бүү алд.</span>
             </h1>
             
             <p className="mt-6 text-base sm:text-lg text-slate-600 leading-relaxed font-normal">
