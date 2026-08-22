@@ -10,7 +10,8 @@ export default function RegisterPage() {
   
   const [formData, setFormData] = useState({
     companyName: '',
-    ownerName: '',
+    lastName: '',  // Овог
+    firstName: '', // Нэр
     email: '',
     password: '',
   });
@@ -137,24 +138,46 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          {/* Таны нэр */}
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
-              Таны нэр
-            </label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400">
-                <User size={18} />
-              </span>
-              <input 
-                type="text" 
-                name="ownerName"
-                required
-                value={formData.ownerName}
-                onChange={handleChange}
-                placeholder="Бат-Эрдэнэ" 
-                className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
-              />
+          {/* Овог болон Нэр (Grid байдлаар зэрэгцүүлж болно эсвэл тус тусад нь) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+                Овог
+              </label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                  <User size={16} />
+                </span>
+                <input 
+                  type="text" 
+                  name="lastName"
+                  required
+                  value={formData.lastName}
+                  onChange={handleChange}
+                  placeholder="Овог" 
+                  className="w-full pl-9 pr-3.5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+                Нэр
+              </label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                  <User size={16} />
+                </span>
+                <input 
+                  type="text" 
+                  name="firstName"
+                  required
+                  value={formData.firstName}
+                  onChange={handleChange}
+                  placeholder="Нэр" 
+                  className="w-full pl-9 pr-3.5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                />
+              </div>
             </div>
           </div>
 

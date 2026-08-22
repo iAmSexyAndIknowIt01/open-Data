@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { compare } from 'bcrypt';
-import { cookies } from 'next/headers'; // <-- cookies-г импортлох
+import { cookies } from 'next/headers';
 import { pool } from '../../../../lib/db'; // Таны өөрийн db холболтын файл
 
 export async function POST(request: Request) {
@@ -16,9 +16,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Хэрэглэгч бүртгэлтэй эсэхийг шалгах
+    // 2. mt_user хүснэгтээс хэрэглэгчийг имэйлээр хайх
     const result = await pool.query(
-      'SELECT * FROM mt_company WHERE email = $1',
+      'SELECT * FROM mt_user WHERE email = $1',
       [email]
     );
 
@@ -29,10 +29,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const company = result.rows[0];
+    const user = result.rows[0];
 
-    // 3. Нууц үг тохирч байгаа эсэхийг шалгах
-    const isPasswordValid = await compare(password, company.password_hash);
+    // 3. Нууц үг тохирч байгаа эсэхийг шалгах (mt_user.password_hash)
+    const isPasswordValid = await compare(password, user.password_hash);
 
     if (!isPasswordValid) {
       return NextResponse.json(
@@ -41,26 +41,50 @@ export async function POST(request: Request) {
       );
     }
 
-    // 4. company_id-г Cookie-д хадгалах
+    // 4. user_id, company_id болон role-ийг тус тус Cookie-д хадгалах
     const cookieStore = cookies();
+    
+    (await cookieStore).set({
+      name: 'user_id',
+      value: String(user.user_id),
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7, // 7 хоног
+      sameSite: 'strict',
+    });
+
     (await cookieStore).set({
       name: 'company_id',
-      value: String(company.company_id),
-      httpOnly: true, // Хакердах оролдлогоос (XSS) хамгаална
-      secure: process.env.NODE_ENV === 'production', // Production дээр HTTPS шаардах
+      value: String(user.company_id),
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
       path: '/',
-      maxAge: 60 * 60 * 24 * 7, // 7 хоног хадгалагдана
+      maxAge: 60 * 60 * 24 * 7, // 7 хоног
       sameSite: 'strict',
-    });   
+    });
 
-    // 5. Амжилттай нэвтэрсэн үед мэдээллийг буцаах
+    (await cookieStore).set({
+      name: 'role',
+      value: String(user.role),
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7, // 7 хоног
+      sameSite: 'strict',
+    });
+
+    // 5. Амжилттай нэвтэрсэн үед хэрэглэгчийн мэдээллийг буцаах
     return NextResponse.json(
       {
         message: 'Амжилттай нэвтэрлээ.',
-        company: {
-          id: company.company_id,
-          name: company.company_name,
-          email: company.email,
+        user: {
+          userId: user.user_id,
+          companyId: user.company_id,
+          email: user.email,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          role: user.role,
         },
       },
       { status: 200 }
