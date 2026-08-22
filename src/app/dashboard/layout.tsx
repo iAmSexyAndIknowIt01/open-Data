@@ -36,6 +36,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
+      {/* Header дээр relative класс нэмэх нь mobileMenu-г зөв байрлуулахад тусална */}
       <header className="bg-white border-b border-slate-200 px-4 sm:px-8 py-4 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center gap-4 sm:gap-8">
           {/* Mobile menu button */}
@@ -111,28 +112,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           )}
         </div>
-      </header>
 
-      {/* Mobile Navigation Dropdown Menu */}
-      {mobileMenuOpen && (
-        <div className="md:hidden bg-white border-b border-slate-200 px-4 py-3 space-y-1 shadow-md animate-in fade-in slide-in-from-top-2">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setMobileMenuOpen(false)}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${
-                pathname === item.href 
-                  ? 'bg-blue-50 text-blue-600' 
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-              }`}
-            >
-              <item.icon size={18} />
-              {item.label}
-            </Link>
-          ))}
-        </div>
-      )}
+        {/* Mobile Navigation Dropdown Menu - absolute top-full болгож header дотор байрлуулав */}
+        {mobileMenuOpen && (
+          <div className="md:hidden absolute top-full left-0 w-full bg-white border-b border-slate-200 px-4 py-3 space-y-1 shadow-xl z-50 animate-in fade-in slide-in-from-top-2">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${
+                  pathname === item.href 
+                    ? 'bg-blue-50 text-blue-600' 
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                <item.icon size={18} />
+                {item.label}
+              </Link>
+            ))}
+          </div>
+        )}
+      </header>
       
       <main className="flex-1 p-4 sm:p-8 max-w-7xl w-full mx-auto">{children}</main>
     </div>
