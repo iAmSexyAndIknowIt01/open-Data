@@ -1,13 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { User, Building2, Mail, Phone, MapPin, Shield, CheckCircle2, Edit3, X, Save, Loader2 } from 'lucide-react';
+import { User, Building2, Mail, Phone, MapPin, Shield, CheckCircle2, Edit3, X, Save, Loader2, KeyRound } from 'lucide-react';
 
 export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [successMessage, setSuccessMessage] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isEditing, setIsEditing] = useState(false);
+  
+  // Нууц үг солих хэсгийг нээх/хаах төлөв
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   // mt_company хүснэгтийн багануудын дагуух төлөв
   const [formData, setFormData] = useState({
@@ -61,6 +64,7 @@ export default function ProfilePage() {
   const handleCancelClick = () => {
     setFormData(tempData);
     setIsEditing(false);
+    setIsChangingPassword(false);
     setErrorMessage('');
   };
 
@@ -73,22 +77,37 @@ export default function ProfilePage() {
     e.preventDefault();
     setErrorMessage('');
 
-    // Нууц үг солих үеийн энгийн шалгуур
-    if (formData.newPassword && formData.newPassword !== formData.confirmPassword) {
-      setErrorMessage('Шинэ нууц үг хоорондоо таарахгүй байна.');
-      return;
+    // Хэрэв нууц үг солих хэсэг нээгдсэн бөгөөд шинэ нууц үг бичсэн бол шалгах
+    if (isChangingPassword && formData.newPassword) {
+      if (!formData.currentPassword) {
+        setErrorMessage('Хуучин нууц үгээ оруулна уу.');
+        return;
+      }
+      if (formData.newPassword !== formData.confirmPassword) {
+        setErrorMessage('Шинэ нууц үг хоорондоо таарахгүй байна.');
+        return;
+      }
     }
 
     try {
+      // Хэрэв нууц үг солих товчийг хаасан бол password талбаруудыг хоослоод явуулах
+      const submitData = isChangingPassword ? formData : {
+        ...formData,
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      };
+
       const res = await fetch('/api/company', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(submitData)
       });
       const result = await res.json();
 
       if (result.success) {
         setIsEditing(false);
+        setIsChangingPassword(false);
         setSuccessMessage(true);
         setTimeout(() => setSuccessMessage(false), 3000);
       } else {
@@ -112,7 +131,7 @@ export default function ProfilePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-black text-slate-900">Компанийн профайл</h1>
-          <p className="text-slate-500 text-sm mt-1">mt_company бүртгэлтэй мэдээллээ харж, шинэчлэх боломжтой.</p>
+          <p className="text-slate-500 text-sm mt-1">Бүртгэлтэй мэдээллээ харж, шинэчлэх боломжтой.</p>
         </div>
 
         {!isEditing && (
@@ -233,50 +252,77 @@ export default function ProfilePage() {
           </div>
         </div>
 
+        {/* Нууц үг хэсэг (Зөвхөн Засах горимд харагдана) */}
         {isEditing && (
           <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6 animate-in fade-in">
-            <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
-              <Shield className="text-blue-600" size={20} />
-              <h3 className="font-extrabold text-slate-900">Нууц үг солих</h3>
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <Shield className="text-blue-600" size={20} />
+                <h3 className="font-extrabold text-slate-900">Аюулгүй байдал</h3>
+              </div>
+
+              {!isChangingPassword ? (
+                <button
+                  type="button"
+                  onClick={() => setIsChangingPassword(true)}
+                  className="flex items-center gap-2 text-xs font-bold bg-blue-50 text-blue-600 hover:bg-blue-100 px-4 py-2 rounded-xl transition-all cursor-pointer"
+                >
+                  <KeyRound size={14} /> Нууц үг солих
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsChangingPassword(false);
+                    setFormData(prev => ({ ...prev, currentPassword: '', newPassword: '', confirmPassword: '' }));
+                  }}
+                  className="text-xs font-bold text-rose-500 hover:text-rose-700 transition-all cursor-pointer"
+                >
+                  Цуцлах
+                </button>
+              )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Хуучин нууц үг</label>
-                <input 
-                  type="password" 
-                  name="currentPassword"
-                  value={formData.currentPassword}
-                  onChange={handleChange}
-                  placeholder="••••••••"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
-                />
-              </div>
+            {/* Нууц үг солих товчийг дарсан үед л гарч ирэх input хэсэг */}
+            {isChangingPassword && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Хуучин нууц үг</label>
+                  <input 
+                    type="password" 
+                    name="currentPassword"
+                    value={formData.currentPassword}
+                    onChange={handleChange}
+                    placeholder="••••••••"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Шинэ нууц үг</label>
-                <input 
-                  type="password" 
-                  name="newPassword"
-                  value={formData.newPassword}
-                  onChange={handleChange}
-                  placeholder="••••••••"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
-                />
-              </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Шинэ нууц үг</label>
+                  <input 
+                    type="password" 
+                    name="newPassword"
+                    value={formData.newPassword}
+                    onChange={handleChange}
+                    placeholder="••••••••"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Шинэ нууц үг давтах</label>
-                <input 
-                  type="password" 
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  placeholder="••••••••"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
-                />
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Шинэ нууц үг давтах</label>
+                  <input 
+                    type="password" 
+                    name="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    placeholder="••••••••"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                  />
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
