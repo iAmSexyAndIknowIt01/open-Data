@@ -122,9 +122,10 @@ export default function LoginPage() {
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
                 Нууц үг
               </label>
-              <a href="#" className="text-xs font-bold text-blue-600 hover:underline">
+              {/* Энд Link компонентийг ашиглан нууц үг сэргээх хуудасны зам руу холбож өгөв */}
+              <Link href="/forgot-password" className="text-xs font-bold text-blue-600 hover:underline">
                 Нууц үгээ мартсан уу?
-              </a>
+              </Link>
             </div>
             <div className="relative">
               <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400">
