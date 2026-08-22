@@ -127,18 +127,19 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      <div className="flex items-center justify-between">
+    <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
+      {/* Header section */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900">Компанийн профайл</h1>
-          <p className="text-slate-500 text-sm mt-1">Бүртгэлтэй мэдээллээ харж, шинэчлэх боломжтой.</p>
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900">Компанийн профайл</h1>
+          <p className="text-slate-500 text-xs sm:text-sm mt-1">Бүртгэлтэй мэдээллээ харж, шинэчлэх боломжтой.</p>
         </div>
 
         {!isEditing && (
           <button 
             type="button"
             onClick={handleEditClick}
-            className="flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-700 font-bold px-4 py-2.5 rounded-2xl border border-slate-200 shadow-sm transition-all text-sm cursor-pointer"
+            className="flex items-center justify-center gap-2 bg-white hover:bg-slate-50 text-slate-700 font-bold px-4 py-2.5 rounded-2xl border border-slate-200 shadow-sm transition-all text-sm cursor-pointer self-start sm:self-auto"
           >
             <Edit3 size={16} className="text-blue-600" /> Засах
           </button>
@@ -146,35 +147,35 @@ export default function ProfilePage() {
       </div>
 
       {successMessage && (
-        <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-2xl flex items-center gap-2 text-sm font-bold animate-in fade-in">
-          <CheckCircle2 size={18} /> Мэдээлэл амжилттай шинэчлэгдлээ!
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-2xl flex items-center gap-2 text-xs sm:text-sm font-bold animate-in fade-in">
+          <CheckCircle2 size={18} className="shrink-0" /> Мэдээлэл амжилттай шинэчлэгдлээ!
         </div>
       )}
 
       {errorMessage && (
-        <div className="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-2xl text-sm font-bold animate-in fade-in">
+        <div className="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-2xl text-xs sm:text-sm font-bold animate-in fade-in">
           {errorMessage}
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
-          <div className="flex items-center justify-between pb-6 border-b border-slate-100">
+        <div className="bg-white p-5 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-slate-100 gap-4">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-linear-to-tr from-blue-600 to-sky-400 text-white rounded-2xl flex items-center justify-center font-black text-xl shadow-md">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-linear-to-tr from-blue-600 to-sky-400 text-white rounded-2xl flex items-center justify-center font-black text-lg sm:text-xl shadow-md shrink-0">
                 {formData.companyName ? formData.companyName.substring(0, 2).toUpperCase() : 'КО'}
               </div>
-              <div>
-                <h2 className="font-extrabold text-lg text-slate-900">{formData.companyName}</h2>
-                <p className="text-slate-500 text-sm">Хариуцлагатай хүн: {formData.ownerName}</p>
+              <div className="min-w-0">
+                <h2 className="font-extrabold text-base sm:text-lg text-slate-900 truncate">{formData.companyName}</h2>
+                <p className="text-slate-500 text-xs sm:text-sm truncate">Хариуцлагатай хүн: {formData.ownerName}</p>
               </div>
             </div>
-            <span className={`text-xs font-bold px-3 py-1 rounded-full ${isEditing ? 'bg-amber-50 text-amber-600 border border-amber-200' : 'bg-slate-100 text-slate-500'}`}>
+            <span className={`text-xs font-bold px-3 py-1 rounded-full self-start sm:self-auto ${isEditing ? 'bg-amber-50 text-amber-600 border border-amber-200' : 'bg-slate-100 text-slate-500'}`}>
               {isEditing ? 'Засах горим' : 'Харах горим'}
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Компанийн нэр</label>
               <div className="relative">
@@ -254,18 +255,18 @@ export default function ProfilePage() {
 
         {/* Нууц үг хэсэг (Зөвхөн Засах горимд харагдана) */}
         {isEditing && (
-          <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6 animate-in fade-in">
+          <div className="bg-white p-5 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6 animate-in fade-in">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div className="flex items-center gap-3">
-                <Shield className="text-blue-600" size={20} />
-                <h3 className="font-extrabold text-slate-900">Аюулгүй байдал</h3>
+                <Shield className="text-blue-600 shrink-0" size={20} />
+                <h3 className="font-extrabold text-sm sm:text-base text-slate-900">Аюулгүй байдал</h3>
               </div>
 
               {!isChangingPassword ? (
                 <button
                   type="button"
                   onClick={() => setIsChangingPassword(true)}
-                  className="flex items-center gap-2 text-xs font-bold bg-blue-50 text-blue-600 hover:bg-blue-100 px-4 py-2 rounded-xl transition-all cursor-pointer"
+                  className="flex items-center gap-2 text-xs font-bold bg-blue-50 text-blue-600 hover:bg-blue-100 px-3.5 py-2 rounded-xl transition-all cursor-pointer"
                 >
                   <KeyRound size={14} /> Нууц үг солих
                 </button>
@@ -285,7 +286,7 @@ export default function ProfilePage() {
 
             {/* Нууц үг солих товчийг дарсан үед л гарч ирэх input хэсэг */}
             {isChangingPassword && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 animate-in fade-in">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Хуучин нууц үг</label>
                   <input 
@@ -327,17 +328,17 @@ export default function ProfilePage() {
         )}
 
         {isEditing && (
-          <div className="flex items-center justify-end gap-3 animate-in fade-in">
+          <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-3 animate-in fade-in">
             <button 
               type="button"
               onClick={handleCancelClick}
-              className="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 font-bold px-6 py-3.5 rounded-2xl hover:bg-slate-50 transition-all text-sm cursor-pointer"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-600 font-bold px-6 py-3.5 rounded-2xl hover:bg-slate-50 transition-all text-sm cursor-pointer"
             >
               <X size={18} /> Цуцлах
             </button>
             <button 
               type="submit"
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3.5 rounded-2xl shadow-lg shadow-blue-500/20 transition-all text-sm cursor-pointer"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3.5 rounded-2xl shadow-lg shadow-blue-500/20 transition-all text-sm cursor-pointer"
             >
               <Save size={18} /> Өөрчлөлтийг хадгалах
             </button>
