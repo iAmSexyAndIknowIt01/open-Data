@@ -9,15 +9,15 @@ export default function ProfilePage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   
-  // Нууц үг солих хэсгийг нээх/хаах төлөв
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
-  // mt_company хүснэгтийн багануудын дагуух төлөв
+  // mt_user болон mt_company багануудын дагуух төлөв
   const [formData, setFormData] = useState({
     companyName: '',
-    ownerName: '',
+    firstName: '',
+    lastName: '',
     email: '',
-    phoneNumber: '',
+    phone: '',
     address: '',
     currentPassword: '',
     newPassword: '',
@@ -26,34 +26,38 @@ export default function ProfilePage() {
 
   const [tempData, setTempData] = useState(formData);
 
-  // API-аас компани мэдээлэл татаж авах
+  // API-аас хэрэглэгчийн мэдээлэл татаж авах (/api/profile руу хандана)
   useEffect(() => {
-    async function fetchCompanyData() {
+    async function fetchUserData() {
       try {
-        const res = await fetch('/api/company');
+        const res = await fetch('/api/profile');
         const result = await res.json();
         if (result.success) {
-          const comp = result.data;
+          const user = result.data;
           const initialData = {
-            companyName: comp.company_name || '',
-            ownerName: comp.owner_name || '',
-            email: comp.email || '',
-            phoneNumber: comp.phone_number || '',
-            address: comp.address || '',
+            companyName: user.company_name || '',
+            firstName: user.first_name || '',
+            lastName: user.last_name || '',
+            email: user.email || '',
+            phone: user.phone || '',
+            address: user.address || '',
             currentPassword: '',
             newPassword: '',
             confirmPassword: ''
           };
           setFormData(initialData);
           setTempData(initialData);
+        } else {
+          setErrorMessage(result.error || 'Мэдээлэл татахад алдаа гарлаа.');
         }
       } catch (err) {
         console.error('Failed to load profile', err);
+        setErrorMessage('Сервертэй холбогдоход алдаа гарлаа.');
       } finally {
         setLoading(false);
       }
     }
-    fetchCompanyData();
+    fetchUserData();
   }, []);
 
   const handleEditClick = () => {
@@ -77,7 +81,6 @@ export default function ProfilePage() {
     e.preventDefault();
     setErrorMessage('');
 
-    // Хэрэв нууц үг солих хэсэг нээгдсэн бөгөөд шинэ нууц үг бичсэн бол шалгах
     if (isChangingPassword && formData.newPassword) {
       if (!formData.currentPassword) {
         setErrorMessage('Хуучин нууц үгээ оруулна уу.');
@@ -90,7 +93,6 @@ export default function ProfilePage() {
     }
 
     try {
-      // Хэрэв нууц үг солих товчийг хаасан бол password талбаруудыг хоослоод явуулах
       const submitData = isChangingPassword ? formData : {
         ...formData,
         currentPassword: '',
@@ -98,7 +100,7 @@ export default function ProfilePage() {
         confirmPassword: ''
       };
 
-      const res = await fetch('/api/company', {
+      const res = await fetch('/api/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(submitData)
@@ -131,7 +133,7 @@ export default function ProfilePage() {
       {/* Header section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900">Компанийн профайл</h1>
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900">Хэрэглэгчийн профайл</h1>
           <p className="text-slate-500 text-xs sm:text-sm mt-1">Бүртгэлтэй мэдээллээ харж, шинэчлэх боломжтой.</p>
         </div>
 
@@ -147,13 +149,13 @@ export default function ProfilePage() {
       </div>
 
       {successMessage && (
-        <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-2xl flex items-center gap-2 text-xs sm:text-sm font-bold animate-in fade-in">
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-2xl flex items-center gap-2 text-xs sm:text-sm font-bold">
           <CheckCircle2 size={18} className="shrink-0" /> Мэдээлэл амжилттай шинэчлэгдлээ!
         </div>
       )}
 
       {errorMessage && (
-        <div className="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-2xl text-xs sm:text-sm font-bold animate-in fade-in">
+        <div className="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-2xl text-xs sm:text-sm font-bold">
           {errorMessage}
         </div>
       )}
@@ -163,11 +165,11 @@ export default function ProfilePage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-slate-100 gap-4">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 sm:w-16 sm:h-16 bg-linear-to-tr from-blue-600 to-sky-400 text-white rounded-2xl flex items-center justify-center font-black text-lg sm:text-xl shadow-md shrink-0">
-                {formData.companyName ? formData.companyName.substring(0, 2).toUpperCase() : 'КО'}
+                {formData.firstName ? formData.firstName.substring(0, 2).toUpperCase() : 'ХӨ'}
               </div>
               <div className="min-w-0">
-                <h2 className="font-extrabold text-base sm:text-lg text-slate-900 truncate">{formData.companyName}</h2>
-                <p className="text-slate-500 text-xs sm:text-sm truncate">Хариуцлагатай хүн: {formData.ownerName}</p>
+                <h2 className="font-extrabold text-base sm:text-lg text-slate-900 truncate">{formData.lastName} {formData.firstName}</h2>
+                <p className="text-slate-500 text-xs sm:text-sm truncate">Компани: {formData.companyName}</p>
               </div>
             </div>
             <span className={`text-xs font-bold px-3 py-1 rounded-full self-start sm:self-auto ${isEditing ? 'bg-amber-50 text-amber-600 border border-amber-200' : 'bg-slate-100 text-slate-500'}`}>
@@ -184,24 +186,8 @@ export default function ProfilePage() {
                   type="text" 
                   name="companyName"
                   value={formData.companyName}
-                  disabled={!isEditing}
-                  onChange={handleChange}
-                  className={`w-full pl-11 pr-4 py-3 border rounded-2xl text-slate-900 text-sm transition-all ${isEditing ? 'bg-slate-50 border-slate-200 focus:outline-none focus:border-blue-500 focus:bg-white' : 'bg-slate-100/60 border-slate-100 cursor-not-allowed text-slate-600'}`}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Хариуцлагатай хүний нэр (Owner)</label>
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400"><User size={18} /></span>
-                <input 
-                  type="text" 
-                  name="ownerName"
-                  value={formData.ownerName}
-                  disabled={!isEditing}
-                  onChange={handleChange}
-                  className={`w-full pl-11 pr-4 py-3 border rounded-2xl text-slate-900 text-sm transition-all ${isEditing ? 'bg-slate-50 border-slate-200 focus:outline-none focus:border-blue-500 focus:bg-white' : 'bg-slate-100/60 border-slate-100 cursor-not-allowed text-slate-600'}`}
+                  disabled={true} // Компанийн нэрийг профайлаас шууд өөрчлөхгүй байхаар тохируулав
+                  className="w-full pl-11 pr-4 py-3 border rounded-2xl text-slate-600 text-sm bg-slate-100/60 border-slate-100 cursor-not-allowed"
                 />
               </div>
             </div>
@@ -220,6 +206,37 @@ export default function ProfilePage() {
                 />
               </div>
             </div>
+            
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Овог</label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400"><User size={18} /></span>
+                <input 
+                  type="text" 
+                  name="lastName"
+                  value={formData.lastName}
+                  disabled={!isEditing}
+                  onChange={handleChange}
+                  className={`w-full pl-11 pr-4 py-3 border rounded-2xl text-slate-900 text-sm transition-all ${isEditing ? 'bg-slate-50 border-slate-200 focus:outline-none focus:border-blue-500 focus:bg-white' : 'bg-slate-100/60 border-slate-100 cursor-not-allowed text-slate-600'}`}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Нэр</label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400"><User size={18} /></span>
+                <input 
+                  type="text" 
+                  name="firstName"
+                  value={formData.firstName}
+                  disabled={!isEditing}
+                  onChange={handleChange}
+                  className={`w-full pl-11 pr-4 py-3 border rounded-2xl text-slate-900 text-sm transition-all ${isEditing ? 'bg-slate-50 border-slate-200 focus:outline-none focus:border-blue-500 focus:bg-white' : 'bg-slate-100/60 border-slate-100 cursor-not-allowed text-slate-600'}`}
+                />
+              </div>
+            </div>
+
 
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Утасны дугаар</label>
@@ -227,8 +244,8 @@ export default function ProfilePage() {
                 <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400"><Phone size={18} /></span>
                 <input 
                   type="text" 
-                  name="phoneNumber"
-                  value={formData.phoneNumber}
+                  name="phone"
+                  value={formData.phone}
                   disabled={!isEditing}
                   onChange={handleChange}
                   className={`w-full pl-11 pr-4 py-3 border rounded-2xl text-slate-900 text-sm transition-all ${isEditing ? 'bg-slate-50 border-slate-200 focus:outline-none focus:border-blue-500 focus:bg-white' : 'bg-slate-100/60 border-slate-100 cursor-not-allowed text-slate-600'}`}
@@ -253,9 +270,9 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Нууц үг хэсэг (Зөвхөн Засах горимд харагдана) */}
+        {/* Нууц үг солих хэсэг */}
         {isEditing && (
-          <div className="bg-white p-5 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6 animate-in fade-in">
+          <div className="bg-white p-5 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div className="flex items-center gap-3">
                 <Shield className="text-blue-600 shrink-0" size={20} />
@@ -284,9 +301,8 @@ export default function ProfilePage() {
               )}
             </div>
 
-            {/* Нууц үг солих товчийг дарсан үед л гарч ирэх input хэсэг */}
             {isChangingPassword && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 animate-in fade-in">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Хуучин нууц үг</label>
                   <input 
@@ -295,7 +311,7 @@ export default function ProfilePage() {
                     value={formData.currentPassword}
                     onChange={handleChange}
                     placeholder="••••••••"
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:bg-white"
                   />
                 </div>
 
@@ -307,7 +323,7 @@ export default function ProfilePage() {
                     value={formData.newPassword}
                     onChange={handleChange}
                     placeholder="••••••••"
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:bg-white"
                   />
                 </div>
 
@@ -319,7 +335,7 @@ export default function ProfilePage() {
                     value={formData.confirmPassword}
                     onChange={handleChange}
                     placeholder="••••••••"
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:bg-white"
                   />
                 </div>
               </div>
@@ -328,7 +344,7 @@ export default function ProfilePage() {
         )}
 
         {isEditing && (
-          <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-3 animate-in fade-in">
+          <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-3">
             <button 
               type="button"
               onClick={handleCancelClick}
