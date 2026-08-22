@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { compare } from 'bcrypt';
+import { cookies } from 'next/headers'; // <-- cookies-г импортлох
 import { pool } from '../../../../lib/db'; // Таны өөрийн db холболтын файл
 
 export async function POST(request: Request) {
@@ -40,8 +41,19 @@ export async function POST(request: Request) {
       );
     }
 
-    // 4. Амжилттай нэвтэрсэн үед шаардлагатай мэдээллийг буцаах
-    // (Энд дараа нь Session эсвэл JWT Token үүсгэж холбож болно)
+    // 4. company_id-г Cookie-д хадгалах
+    const cookieStore = cookies();
+    (await cookieStore).set({
+      name: 'company_id',
+      value: String(company.company_id),
+      httpOnly: true, // Хакердах оролдлогоос (XSS) хамгаална
+      secure: process.env.NODE_ENV === 'production', // Production дээр HTTPS шаардах
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7, // 7 хоног хадгалагдана
+      sameSite: 'strict',
+    });   
+
+    // 5. Амжилттай нэвтэрсэн үед мэдээллийг буцаах
     return NextResponse.json(
       {
         message: 'Амжилттай нэвтэрлээ.',
