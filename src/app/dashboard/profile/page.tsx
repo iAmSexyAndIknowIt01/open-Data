@@ -115,6 +115,7 @@ export default function ProfilePage() {
       } else {
         setErrorMessage(result.error || 'Хадгалахад алдаа гарлаа.');
       }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       setErrorMessage('Сервертэй холбогдоход алдаа гарлаа.');
     }

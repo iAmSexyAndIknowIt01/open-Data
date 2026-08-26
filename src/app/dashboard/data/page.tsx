@@ -1,13 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { Database, Plus, Search, Filter, MoreVertical, FileText, Download, Trash2, Edit } from 'lucide-react';
+import { Database, Plus, Search, Filter, FileText, Download, Trash2, Edit } from 'lucide-react';
 
 export default function DataPage() {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Жишээ өгөгдлийн жагсаалт (API холбох үедээ эндээс сольж ашиглана)
-  const [dataList, setDataList] = useState([
+  const [dataList] = useState([
     { id: 1, name: 'Борлуулалтын тайлан Q1', category: 'Санхүү', date: '2026-03-20', status: 'Идэвхтэй' },
     { id: 2, name: 'Хэрэглэгчийн судалгаа', category: 'Маркетинг', date: '2026-03-18', status: 'Хүлээгдэж буй' },
     { id: 3, name: 'Бараа материалын бүртгэл', category: 'Агуулах', date: '2026-03-15', status: 'Идэвхтэй' },

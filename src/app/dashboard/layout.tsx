@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { LayoutDashboard, Database, Settings, LogOut, User, BarChart3, ChevronDown, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Database, Settings, LogOut, User, BarChart3, ChevronDown, Menu, X, FileText } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -15,6 +15,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const navItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Удирдлага' },
     { href: '/dashboard/data', icon: Database, label: 'Өгөгдөл' },
+    { href: '/dashboard/my-anket', icon: FileText, label: 'Анкет' }, // Шинээр нэмэгдсэн хэсэг
     { href: '/dashboard/analytics', icon: BarChart3, label: 'Аналитик' },
     { href: '/dashboard/settings', icon: Settings, label: 'Тохиргоо' },
   ];
@@ -113,7 +114,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           )}
         </div>
 
-        {/* Mobile Navigation Dropdown Menu - absolute top-full болгож header дотор байрлуулав */}
+        {/* Mobile Navigation Dropdown Menu */}
         {mobileMenuOpen && (
           <div className="md:hidden absolute top-full left-0 w-full bg-white border-b border-slate-200 px-4 py-3 space-y-1 shadow-xl z-50 animate-in fade-in slide-in-from-top-2">
             {navItems.map((item) => (
