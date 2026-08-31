@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { pool } from '../../../lib/db'; // Төслийн замын дагуу тохируулна уу
 
-// 1. Тухайн компанийн анкетын тохиргоог авах GET метод
+// 1. Тухайн компанийн идэвхтэй (is_active = true) анкетын тохиргоог авах GET метод
 export async function GET() {
   try {
     const cookieStore = cookies();
@@ -28,16 +28,16 @@ export async function GET() {
 
     const companyId = userResult.rows[0].company_id;
 
-    // Тухайн компанийн mt_templates дэх анкетын мэдээллийг татах
+    // Тухайн компанийн идэвхтэй байгаа mt_templates дэх анкетын мэдээллийг татах
     const templateQuery = `
       SELECT id, company_id, title, description, questions, is_active, created_at, updated_at
       FROM mt_templates
-      WHERE company_id = $1
+      WHERE company_id = $1 AND is_active = true
       LIMIT 1
     `;
     const templateResult = await pool.query(templateQuery, [companyId]);
 
-    // Хэрэв анкет байхгүй бол хоосон өгөгдөл эсвэл default утга буцааж болно
+    // Хэрэглэгч ямар нэг идэвхтэй анкетгүй бол null буцаана
     if (templateResult.rows.length === 0) {
       return NextResponse.json({
         success: true,
@@ -59,8 +59,9 @@ export async function GET() {
   }
 }
 
-// 2. Анкетын тохиргоог үүсгэх эсвэл шинэчлэх POST/PUT метод
+// 2. Анкетын шинэ хувилбар үүсгэх POST метод (Өмнөх хувилбаруудыг is_active = false болгоно)
 export async function POST(request: Request) {
+  const client = await pool.connect(); // Transaction ашиглах нь илүү найдвартай
   try {
     const cookieStore = cookies();
     const userId = (await cookieStore).get('user_id')?.value;
@@ -74,7 +75,7 @@ export async function POST(request: Request) {
 
     // Хэрэглэгчийн company_id-г олох
     const userQuery = 'SELECT company_id FROM mt_user WHERE user_id = $1';
-    const userResult = await pool.query(userQuery, [userId]);
+    const userResult = await client.query(userQuery, [userId]);
 
     if (userResult.rows.length === 0) {
       return NextResponse.json(
@@ -95,41 +96,40 @@ export async function POST(request: Request) {
       );
     }
 
-    // Тухайн компани аль хэдийн анкеттай эсэхийг шалгах
-    const checkQuery = 'SELECT id FROM mt_templates WHERE company_id = $1';
-    const checkResult = await pool.query(checkQuery, [companyId]);
+    // Transaction эхлүүлэх
+    await client.query('BEGIN');
 
-    if (checkResult.rows.length > 0) {
-      // Хэрэв байвал UPDATE хийнэ
-      const updateQuery = `
-        UPDATE mt_templates 
-        SET 
-          title = $1, 
-          description = $2, 
-          questions = $3::jsonb, 
-          updated_at = CURRENT_TIMESTAMP
-        WHERE company_id = $4
-      `;
-      await pool.query(updateQuery, [title, description, JSON.stringify(questions), companyId]);
-    } else {
-      // Байхгүй бол шинээр INSERT хийнэ
-      const insertQuery = `
-        INSERT INTO mt_templates (company_id, title, description, questions, is_active)
-        VALUES ($1, $2, $3, $4::jsonb, true)
-      `;
-      await pool.query(insertQuery, [companyId, title, description, JSON.stringify(questions)]);
-    }
+    // Өмнө нь идэвхтэй байсан бүх анкетын is_active утгыг false болгож өөрчлөх
+    const deactivateQuery = `
+      UPDATE mt_templates 
+      SET is_active = false, updated_at = CURRENT_TIMESTAMP
+      WHERE company_id = $1 AND is_active = true
+    `;
+    await client.query(deactivateQuery, [companyId]);
+
+    // Шинэ хувилбарыг is_active = true байдлаар шинээр INSERT хийх
+    const insertQuery = `
+      INSERT INTO mt_templates (company_id, title, description, questions, is_active)
+      VALUES ($1, $2, $3, $4::jsonb, true)
+    `;
+    await client.query(insertQuery, [companyId, title, description, JSON.stringify(questions)]);
+
+    // Transaction амжилттай дуусгах
+    await client.query('COMMIT');
 
     return NextResponse.json({
       success: true,
-      message: 'Анкетын тохиргоо амжилттай хадгалагдлаа.',
+      message: 'Анкетын шинэ загвар амжилттай хадгалагдлаа.',
     });
 
   } catch (error) {
+    await client.query('ROLLBACK'); // Алдаа гарвал буцаах
     console.error('Template Save Error:', error);
     return NextResponse.json(
       { success: false, error: 'Серверт алдаа гарлаа.' },
       { status: 500 }
     );
+  } finally {
+    client.release(); // Connection-ийг буцааж чөлөөлөх
   }
 }
