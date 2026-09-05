@@ -124,7 +124,7 @@ export default function MyAnketPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex items-center justify-center min-h-100">
         <p className="text-sm font-semibold text-slate-500 animate-pulse">Мэдээллийг ачаалж байна...</p>
       </div>
     );
@@ -292,15 +292,23 @@ export default function MyAnketPage() {
                         </button>
                       </div>
                     </div>
-
                     {q.type === 'select' && (
                       <div className="pt-1">
                         <input
                           type="text"
-                          value={q.options ? q.options.join(', ') : ''}
-                          onChange={(e) => handleQuestionChange(q.id, 'options', e.target.value.split(',').map(s => s.trim()))}
+                          value={
+                            Array.isArray(q.options) 
+                              ? q.options.join(', ') 
+                              : (typeof q.options === 'string' ? q.options : '')
+                          }
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            // Таслалаар салгаад массив болгож хадгалах
+                            const optionsArray = val ? val.split(',').map(s => s.trim()).filter(Boolean) : [];
+                            handleQuestionChange(q.id, 'options', optionsArray);
+                          }}
                           className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-medium text-slate-700 focus:outline-none focus:border-blue-600"
-                          placeholder="Сонголтууд (таслалаар тусгаарлах)"
+                          placeholder="Сонголтууд (таслалаар тусгаарлах, жнь: Авто угаалга, Тос солих)"
                         />
                       </div>
                     )}
@@ -377,16 +385,30 @@ export default function MyAnketPage() {
                   {idx + 1}. {q.label} {q.required && <span className="text-rose-500">*</span>}
                 </label>
                 {q.type === 'select' ? (
-                  <select disabled className="w-full px-4.5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-400 text-sm">
-                    <option>Сонгох...</option>
-                    {q.options?.map((o, i) => <option key={i}>{o}</option>)}
+                  <select className="w-full px-4.5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-blue-600 cursor-pointer">
+                    <option value="">Сонгох...</option>
+                    {(() => {
+                      // options массив эсвэл string байвал түүнийг зөв задалж харуулах
+                      let opts: string[] = [];
+                      if (Array.isArray(q.options)) {
+                        opts = q.options;
+                      } else if (typeof q.options === 'string') {
+                        opts = (q.options as string).split(',').map(s => s.trim()).filter(Boolean);
+                      }
+                      
+                      return opts.map((o, i) => (
+                        <option key={i} value={o}>
+                          {o}
+                        </option>
+                      ));
+                    })()}
                   </select>
                 ) : (
-                  <input type={q.type} placeholder="Бөглөх хэсэг..." disabled className="w-full px-4.5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-400 text-sm" />
+                  <input type={q.type} placeholder="Бөглөх хэсэг..." className="w-full px-4.5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-blue-600" />
                 )}
               </div>
             ))}
-            <button disabled className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl opacity-60 cursor-not-allowed mt-6 text-sm">
+            <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl transition-all mt-6 text-sm cursor-pointer shadow-md shadow-blue-500/20">
               Илгээх
             </button>
           </div>
