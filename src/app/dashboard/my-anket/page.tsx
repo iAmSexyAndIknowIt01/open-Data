@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { QrCode, Save, Plus, Trash2, CheckCircle2, Copy, Eye, Settings2, Sparkles } from 'lucide-react';
+import { Save, Plus, Trash2, CheckCircle2, Copy, Eye, Settings2, Sparkles, ExternalLink } from 'lucide-react';
 
 interface Question {
   id: string;
@@ -112,6 +112,10 @@ export default function MyAnketPage() {
   };
 
   const clientFormUrl = `https://opendata-crm.mn/form/${companyId || 'company'}`;
+  
+  // Утасны камераар уншихад шууд холбогдох QR зургийн холбоос (Public QR API ашиглав)
+  const qrCodeImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(clientFormUrl)}`;
+
   const handleCopyLink = () => {
     navigator.clipboard.writeText(clientFormUrl);
     setCopied(true);
@@ -186,7 +190,7 @@ export default function MyAnketPage() {
 
       {errorMessage && (
         <div className="bg-rose-50 border border-rose-200 text-rose-800 px-5 py-4 rounded-2xl flex items-center gap-3 text-xs sm:text-sm font-bold shadow-sm">
-          <span className="text-rose-600 font-bold">Алға:</span> {errorMessage}
+          <span className="text-rose-600 font-bold">Алдаа:</span> {errorMessage}
         </div>
       )}
 
@@ -309,14 +313,30 @@ export default function MyAnketPage() {
           {/* QR & Public Link */}
           <div className="space-y-6">
             <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-100 shadow-xs text-center space-y-6 sticky top-6">
-              <div className="text-left pb-4 border-b border-slate-100">
-                <h2 className="font-bold text-sm sm:text-base text-slate-900">QR Код</h2>
-                <p className="text-slate-500 text-xs mt-1">Үйлчлүүлэгчдэд зориулсан холбоос</p>
+              <div className="text-left pb-4 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                  <h2 className="font-bold text-sm sm:text-base text-slate-900">QR Код</h2>
+                  <p className="text-slate-500 text-xs mt-1">Камераар уншуулж бөглөх</p>
+                </div>
+                <a
+                  href={clientFormUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 bg-slate-50 text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                  title="Шинэ цонхоор нээх"
+                >
+                  <ExternalLink size={16} />
+                </a>
               </div>
 
               <div className="bg-slate-50/80 p-6 rounded-3xl border border-slate-200/60 flex flex-col items-center justify-center space-y-4">
-                <div className="w-44 h-44 bg-white p-4 rounded-2xl border border-slate-200/80 flex items-center justify-center shadow-xs">
-                  <QrCode size={130} className="text-slate-900" />
+                <div className="w-44 h-44 bg-white p-3 rounded-2xl border border-slate-200/80 flex items-center justify-center shadow-xs">
+                  {/* Бодит холбоос шингээсэн QR зургийг үзүүлэх */}
+                  <img
+                    src={qrCodeImageUrl}
+                    alt="Client Form QR Code"
+                    className="w-full h-full object-contain rounded-lg"
+                  />
                 </div>
               </div>
 
