@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -9,6 +10,7 @@ interface Question {
   type: 'text' | 'number' | 'select';
   required: boolean;
   options?: string[];
+  default?: boolean;
 }
 
 export default function MyAnketPage() {
@@ -246,43 +248,45 @@ export default function MyAnketPage() {
               </div>
 
               <div className="space-y-4">
-                {questions.map((q, index) => (
-                  <div key={q.id} className="p-5 sm:p-6 rounded-2xl border border-slate-200/80 bg-slate-50/40 hover:bg-slate-50/80 transition-all space-y-4">
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-                      <div className="flex items-center gap-3.5 flex-1">
-                        <span className="w-8 h-8 rounded-xl bg-slate-200/80 text-slate-700 flex items-center justify-center text-xs font-black shrink-0">
-                          {index + 1}
-                        </span>
-                        <input
-                          type="text"
-                          value={q.label}
-                          onChange={(e) => handleQuestionChange(q.id, 'label', e.target.value)}
-                          placeholder="Асуултын нэр..."
-                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-800 focus:outline-none focus:border-blue-600 transition-all"
-                        />
-                      </div>
+              {questions.map((q, index) => (
+                <div key={q.id} className="p-5 sm:p-6 rounded-2xl border border-slate-200/80 bg-slate-50/40 hover:bg-slate-50/80 transition-all space-y-4">
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3.5 flex-1">
+                      <span className="w-8 h-8 rounded-xl bg-slate-200/80 text-slate-700 flex items-center justify-center text-xs font-black shrink-0">
+                        {index + 1}
+                      </span>
+                      <input
+                        type="text"
+                        value={q.label}
+                        onChange={(e) => handleQuestionChange(q.id, 'label', e.target.value)}
+                        placeholder="Асуултын нэр..."
+                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-800 focus:outline-none focus:border-blue-600 transition-all"
+                      />
+                    </div>
 
-                      <div className="flex items-center gap-2 self-end lg:self-auto flex-wrap">
-                        <select
-                          value={q.type}
-                          onChange={(e) => handleQuestionChange(q.id, 'type', e.target.value)}
-                          className="bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-700 focus:outline-none focus:border-blue-600 cursor-pointer"
-                        >
-                          <option value="text">Текст</option>
-                          <option value="number">Тоо</option>
-                          <option value="select">Сонголт</option>
-                        </select>
+                    <div className="flex items-center gap-2 self-end lg:self-auto flex-wrap">
+                      <select
+                        value={q.type}
+                        onChange={(e) => handleQuestionChange(q.id, 'type', e.target.value)}
+                        className="bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-700 focus:outline-none focus:border-blue-600 cursor-pointer"
+                      >
+                        <option value="text">Текст</option>
+                        <option value="number">Тоо</option>
+                        <option value="select">Сонголт</option>
+                      </select>
 
-                        <button
-                          type="button"
-                          onClick={() => handleQuestionChange(q.id, 'required', !q.required)}
-                          className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                            q.required ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-slate-200/60 text-slate-500'
-                          }`}
-                        >
-                          {q.required ? 'Заавал' : 'Заавал биш'}
-                        </button>
+                      <button
+                        type="button"
+                        onClick={() => handleQuestionChange(q.id, 'required', !q.required)}
+                        className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                          q.required ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-slate-200/60 text-slate-500'
+                        }`}
+                      >
+                        {q.required ? 'Заавал' : 'Заавал биш'}
+                      </button>
 
+                      {/* default: true биш бол л устгах хогийн савны товчийг харуулна */}
+                      {!q.default && (
                         <button
                           type="button"
                           onClick={() => handleDeleteQuestion(q.id)}
@@ -290,30 +294,30 @@ export default function MyAnketPage() {
                         >
                           <Trash2 size={16} />
                         </button>
-                      </div>
+                      )}
                     </div>
-                    {q.type === 'select' && (
-                      <div className="pt-1">
-                        <input
-                          type="text"
-                          value={
-                            Array.isArray(q.options) 
-                              ? q.options.join(', ') 
-                              : (typeof q.options === 'string' ? q.options : '')
-                          }
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            // Таслалаар салгаад массив болгож хадгалах
-                            const optionsArray = val ? val.split(',').map(s => s.trim()).filter(Boolean) : [];
-                            handleQuestionChange(q.id, 'options', optionsArray);
-                          }}
-                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-medium text-slate-700 focus:outline-none focus:border-blue-600"
-                          placeholder="Сонголтууд (таслалаар тусгаарлах, жнь: Авто угаалга, Тос солих)"
-                        />
-                      </div>
-                    )}
                   </div>
-                ))}
+                  {q.type === 'select' && (
+                    <div className="pt-1">
+                      <input
+                        type="text"
+                        value={
+                          Array.isArray(q.options) 
+                            ? q.options.join(', ') 
+                            : (typeof q.options === 'string' ? q.options : '')
+                        }
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const optionsArray = val ? val.split(',').map(s => s.trim()).filter(Boolean) : [];
+                          handleQuestionChange(q.id, 'options', optionsArray);
+                        }}
+                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-medium text-slate-700 focus:outline-none focus:border-blue-600"
+                        placeholder="Сонголтууд (таслалаар тусгаарлах, жнь: Авто угаалга, Тос солих)"
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
               </div>
             </div>
           </div>
