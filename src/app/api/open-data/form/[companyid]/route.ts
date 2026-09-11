@@ -41,10 +41,11 @@ export async function GET(
 // 2. Үйлчлүүлэгчийн оруулсан хариуг хадгалах POST метод
 export async function POST(
   request: Request,
-  { params }: { params: { companyid: string } }
+  { params }: { params: Promise<{ companyid: string }> }
 ) {
   try {
-    const { companyid } = params;
+    const resolvedParams = await params;
+    const companyid = resolvedParams.companyid;
     const body = await request.json();
     const { answers } = body; // Үйлчлүүлэгчийн бөглөсөн хариултууд
 

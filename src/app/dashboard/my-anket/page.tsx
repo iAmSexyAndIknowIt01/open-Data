@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Save, Plus, Trash2, CheckCircle2, Copy, Eye, Settings2, Sparkles, ExternalLink } from 'lucide-react';
+import Image from 'next/image';
 
 interface Question {
   id: string;
@@ -350,12 +351,15 @@ export default function MyAnketPage() {
               </div>
 
               <div className="bg-slate-50/80 p-6 rounded-3xl border border-slate-200/60 flex flex-col items-center justify-center space-y-4">
-                <div className="w-44 h-44 bg-white p-3 rounded-2xl border border-slate-200/80 flex items-center justify-center shadow-xs">
-                  {/* Бодит холбоос шингээсэн QR зургийг үзүүлэх */}
-                  <img
+                <div className="w-44 h-44 bg-white p-3 rounded-2xl border border-slate-200/80 flex items-center justify-center shadow-xs relative">
+                  {/* Next.js Image компонентоор солих */}
+                  <Image
                     src={qrCodeImageUrl}
                     alt="Client Form QR Code"
+                    width={176}
+                    height={176}
                     className="w-full h-full object-contain rounded-lg"
+                    unoptimized // Гадаад API-аас ирж буй динамик QR код тул unoptimized байлгавал илүү тохиромжтой
                   />
                 </div>
               </div>
