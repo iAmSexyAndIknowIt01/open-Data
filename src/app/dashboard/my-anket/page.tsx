@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -31,20 +30,27 @@ export default function MyAnketPage() {
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [copied, setCopied] = useState(false);
+  const [baseUrl, setBaseUrl] = useState('');
 
   // 1. Хуудас ачаалагдахад серверээс өгөгдлийг татаж авах
   useEffect(() => {
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setBaseUrl(window.location.origin); // Одоогийн домэйн URL-г авах
+
     async function fetchTemplate() {
       try {
         const res = await fetch('/api/templates');
         const json = await res.json();
 
+        // Фронт хэсгийн useEffect доторх GET хариуг авах хэсэг:
         if (json.success && json.data) {
           setFormTitle(json.data.title || '');
           setFormDescription(json.data.description || '');
           if (json.data.questions) {
             setQuestions(json.data.questions);
           }
+          // Компанийн ID-г төлөвт хадгалах
           if (json.data.company_id) {
             setCompanyId(json.data.company_id);
           }
@@ -113,7 +119,9 @@ export default function MyAnketPage() {
     }
   };
 
-  const clientFormUrl = `https://opendata-crm.mn/form/${companyId || 'company'}`;
+  const clientFormUrl = companyId 
+  ? `${baseUrl}/open-data/form/${companyId}`
+  : `${baseUrl}/open-data/form/`; // companyId байхгүй бол ерөнхий холбоос
   
   // Утасны камераар уншихад шууд холбогдох QR зургийн холбоос (Public QR API ашиглав)
   const qrCodeImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(clientFormUrl)}`;
