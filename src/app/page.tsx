@@ -4,7 +4,7 @@ import ProblemSolution from "../components/landingPage/ProblemSolution";
 import Features from "../components/landingPage/Features";
 import Testimonial from "../components/landingPage/Testimonial";
 import FooterCTA from "../components/landingPage/FooterCTA";
-import Footer from "../components/landingPage/Footer";
+
 
 export default function Home() {
   return (
@@ -17,7 +17,6 @@ export default function Home() {
         <Testimonial />
         <FooterCTA />
       </main>
-      <Footer />
     </div>
   );
 }
