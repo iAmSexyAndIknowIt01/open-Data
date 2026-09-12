@@ -11,15 +11,7 @@ interface Question {
   options?: string[];
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface TemplateData {
-  title: string;
-  description: string;
-  questions: Question[];
-}
-
 export default function PublicAnketPage({ params }: { params: Promise<{ companyid: string }> }) {
-  // Next.js 15+ asynchronous params-ийг унших
   const resolvedParams = use(params);
   const companyId = resolvedParams.companyid;
 
@@ -28,6 +20,7 @@ export default function PublicAnketPage({ params }: { params: Promise<{ companyi
   const [submitted, setSubmitted] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
+  const [templateId, setTemplateId] = useState(''); // Анкетын үндсэн ID
   const [formTitle, setFormTitle] = useState('');
   const [formDescription, setFormDescription] = useState('');
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -43,6 +36,7 @@ export default function PublicAnketPage({ params }: { params: Promise<{ companyi
         const json = await res.json();
 
         if (json.success && json.data) {
+          setTemplateId(json.data.id || ''); // ID-г хадгалах
           setFormTitle(json.data.title || 'Үйлчлүүлэгчийн анкет');
           setFormDescription(json.data.description || '');
           setQuestions(json.data.questions || []);
@@ -90,7 +84,11 @@ export default function PublicAnketPage({ params }: { params: Promise<{ companyi
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ answers }),
+        body: JSON.stringify({ 
+          templateId, 
+          answers, 
+          questions // Асуултын нэрсийг хадгалах зорилгоор хамт явуулна
+        }),
       });
 
       const data = await response.json();

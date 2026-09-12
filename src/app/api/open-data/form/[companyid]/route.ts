@@ -38,34 +38,84 @@ export async function GET(
   }
 }
 
-// 2. Үйлчлүүлэгчийн оруулсан хариуг хадгалах POST метод
+// 2. Үйлчлүүлэгчийн оруулсан хариуг form_submissions болон form_submission_answers рүү хадгалах
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ companyid: string }> }
 ) {
+  // Transaction ашиглах тул client-ийг pool-оос дуудна
+  const client = await pool.connect();
+
   try {
     const resolvedParams = await params;
     const companyid = resolvedParams.companyid;
     const body = await request.json();
-    const { answers } = body; // Үйлчлүүлэгчийн бөглөсөн хариултууд
+    const { answers, templateId, questions } = body; 
+    // answers: Record<string, string> (жишээ нь: { "1": "Бат", "2": "99112233" })
+    // questions: Question[] (асуултын жагсаалт - question_label-г олох зорилгоор)
 
-    // Жишээ нь: Үйлчлүүлэгчийн хариуг хадгалах хүснэгт рүү бичих (mt_client_answers гэх мэт)
-    const insertQuery = `
-      INSERT INTO mt_client_answers (company_id, answers, created_at)
-      VALUES ($1, $2::jsonb, CURRENT_TIMESTAMP)
+    if (!templateId) {
+      return NextResponse.json(
+        { success: false, error: 'Анкетын загварын ID олдсонгүй.' },
+        { status: 400 }
+      );
+    }
+
+    // Transaction эхлүүлэх
+    await client.query('BEGIN');
+
+    // Асуултуудыг хялбар хайх зорилгоор Map болгох (question_id -> question_label)
+    const questionMap = new Map<string, string>();
+    if (Array.isArray(questions)) {
+      questions.forEach((q: { id: string; label: string }) => {
+        questionMap.set(q.id, q.label);
+      });
+    }
+
+    // 1. form_submissions хүснэгт рүү insert хийж шинэ submission_id авах
+    const submissionQuery = `
+      INSERT INTO form_submissions (form_template_id, company_id)
+      VALUES ($1, $2)
       RETURNING id
     `;
-    await pool.query(insertQuery, [companyid, JSON.stringify(answers)]);
+    const submissionResult = await client.query(submissionQuery, [templateId, companyid]);
+    const submissionId = submissionResult.rows[0].id;
+
+    // 2. form_submission_answers хүснэгт рүү хариулт тус бүрээр insert хийх
+    if (answers && typeof answers === 'object') {
+      for (const [questionId, answerValue] of Object.entries(answers)) {
+        const questionLabel = questionMap.get(questionId) || 'Тодорхойгүй асуулт';
+
+        const answerQuery = `
+          INSERT INTO form_submission_answers (submission_id, question_id, question_label, answer_value)
+          VALUES ($1, $2, $3, $4)
+        `;
+        await client.query(answerQuery, [
+          submissionId,
+          questionId,
+          questionLabel,
+          answerValue !== undefined && answerValue !== null ? String(answerValue) : '',
+        ]);
+      }
+    }
+
+    // Бүх зүйл амжилттай бол commit хийх
+    await client.query('COMMIT');
 
     return NextResponse.json({
       success: true,
       message: 'Анкет амжилттай илгээгдлээ.',
     });
   } catch (error) {
+    // Алдаа гарвал бүх үйлдлийг буцаах
+    await client.query('ROLLBACK');
     console.error('Client Answer Save Error:', error);
     return NextResponse.json(
       { success: false, error: 'Хадгалахад алдаа гарлаа.' },
       { status: 500 }
     );
+  } finally {
+    // Client-ийг чөлөөлөх
+    client.release();
   }
 }
