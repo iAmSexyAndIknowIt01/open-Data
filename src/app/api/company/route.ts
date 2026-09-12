@@ -4,7 +4,7 @@ import { compare, hash } from 'bcrypt';
 import { pool } from '../../../lib/db'; // Таны өөрийн db холболтын файл
 
 // GET: Cookie-гээс company_id авч mt_company хүснэгтээс мэдээлэл татах
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const cookieStore = cookies();
     const companyId = (await cookieStore).get('company_id')?.value;
