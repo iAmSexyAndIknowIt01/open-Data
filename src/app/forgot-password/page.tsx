@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft, Mail, KeyRound, Lock, Loader2, CheckCircle2 } from 'lucide-react';
+import LoadingComponent from '../components/loading';
 
 export default function ForgotPasswordPage() {
   const [step, setStep] = useState<'request' | 'reset'>('request');
@@ -11,12 +12,20 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [token, setToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState(''); // Шинэ нууц үг давтах state
+  const [confirmPassword, setConfirmPassword] = useState('');
   
   // UI states
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsInitialLoading(false);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, []);
 
   // 1. Алхам: Баталгаажуулах код илгээх хүсэлт
   const handleRequestSubmit = async (e: React.FormEvent) => {
@@ -38,8 +47,8 @@ export default function ForgotPasswordPage() {
       }
 
       setStep('reset');
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Хүсэлт илгээх үед алдаа гарлаа.');
     } finally {
       setLoading(false);
     }
@@ -50,7 +59,6 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setError(null);
 
-    // Шинэ нууц үгс хоорондоо таарч байгаа эсэхийг шалгах
     if (newPassword !== confirmPassword) {
       setError('Шинэ нууц үг хоорондоо таарахгүй байна.');
       return;
@@ -72,12 +80,17 @@ export default function ForgotPasswordPage() {
       }
 
       setSuccess(true);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Нууц үг шинэчлэх үед алдаа гарлаа.');
     } finally {
       setLoading(false);
     }
   };
+
+  // Хэрэв уншиж байвал loading компонентыг бүтэн дэлгэцээр харуулна
+  if (isInitialLoading) {
+    return <LoadingComponent />;
+  }
 
   return (
     <div className="min-h-screen bg-[#f8fbff] flex items-center justify-center relative overflow-hidden px-4 sm:px-6 py-12">

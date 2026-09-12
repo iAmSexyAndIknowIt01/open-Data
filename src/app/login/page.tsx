@@ -1,9 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Lock, Mail, Loader2 } from 'lucide-react';
+// Таны үүсгэсэн loading компонентыг импортолж байна (Зам болон нэрийг өөрийн төслийн бүтцээр шалгаарай)
+import LoadingComponent from '../components/loading';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -13,8 +15,16 @@ export default function LoginPage() {
     password: '',
   });
 
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsInitialLoading(false);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -41,15 +51,22 @@ export default function LoginPage() {
         throw new Error(data.error || 'Нэвтрэх үед алдаа гарлаа.');
       }
 
-      // Амжилттай нэвтэрсний дараа удирдлагын самбар эсвэл нүүр хуудас руу шилжүүлэх
-      router.push('/dashboard'); // Жишээ хуудас
+      router.push('/dashboard');
 
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Нэвтрэх үед алдаа гарлаа.');
+      }
       setLoading(false);
     }
   };
+
+  // Хэрэв уншиж байвал src/app/components/loading.tsx компонентыг дэлгэц дүүрэн харуулна
+  if (isInitialLoading || loading) {
+    return <LoadingComponent />;
+  }
 
   return (
     <div className="min-h-screen bg-[#f8fbff] flex items-center justify-center relative overflow-hidden px-4 sm:px-6 py-12">
@@ -122,7 +139,6 @@ export default function LoginPage() {
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
                 Нууц үг
               </label>
-              {/* Энд Link компонентийг ашиглан нууц үг сэргээх хуудасны зам руу холбож өгөв */}
               <Link href="/forgot-password" className="text-xs font-bold text-blue-600 hover:underline">
                 Нууц үгээ мартсан уу?
               </Link>
@@ -154,7 +170,7 @@ export default function LoginPage() {
               </>
             ) : (
               <>
-                Нэвтрэх <ArrowRight size={18} />
+                <span>Нэвтрэх</span> <ArrowRight size={18} />
               </>
             )}
           </button>

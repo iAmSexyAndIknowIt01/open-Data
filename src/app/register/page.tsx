@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Lock, Mail, User, Building2, Loader2, CheckCircle2 } from 'lucide-react';
+import LoadingComponent from '@/src/app/components/loading';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -16,6 +17,7 @@ export default function RegisterPage() {
     password: '',
   });
 
+  const [pageLoading, setPageLoading] = useState(false); // Бүтэн хуудасны loader-г идэвхжүүлэх
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -28,6 +30,7 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setPageLoading(true); // Дата илгээх үед бүтэн хуудасны loader харуулах
     setError(null);
     setSuccess(false);
 
@@ -52,12 +55,18 @@ export default function RegisterPage() {
         router.push('/login');
       }, 2000);
 
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Сүлжээний алдаа гарлаа.';
+      setError(errorMsg);
+      setPageLoading(false); // Алдаа гарсан үед loader-г болиулах
     } finally {
       setLoading(false);
     }
   };
+
+  if (pageLoading) {
+    return <LoadingComponent />;
+  }
 
   return (
     <div className="min-h-screen bg-[#f8fbff] flex items-center justify-center relative overflow-hidden px-4 sm:px-6 py-12">
@@ -138,7 +147,7 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          {/* Овог болон Нэр (Grid байдлаар зэрэгцүүлж болно эсвэл тус тусад нь) */}
+          {/* Овог болон Нэр */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">

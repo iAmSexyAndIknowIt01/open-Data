@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use } from 'react';
 import { CheckCircle2, Sparkles, Send } from 'lucide-react';
+import LoadingComponent from '@/src/app/components/loading';
 
 interface Question {
   id: string;
@@ -20,15 +21,13 @@ export default function PublicAnketPage({ params }: { params: Promise<{ companyi
   const [submitted, setSubmitted] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  const [templateId, setTemplateId] = useState(''); // Анкетын үндсэн ID
+  const [templateId, setTemplateId] = useState('');
   const [formTitle, setFormTitle] = useState('');
   const [formDescription, setFormDescription] = useState('');
   const [questions, setQuestions] = useState<Question[]>([]);
   
-  // Хэрэглэгчийн оруулсан хариултууд ({ [questionId]: value })
   const [answers, setAnswers] = useState<Record<string, string>>({});
 
-  // 1. Тухайн компанийн анкетын загварыг серверээс татах
   useEffect(() => {
     async function fetchPublicTemplate() {
       try {
@@ -36,7 +35,7 @@ export default function PublicAnketPage({ params }: { params: Promise<{ companyi
         const json = await res.json();
 
         if (json.success && json.data) {
-          setTemplateId(json.data.id || ''); // ID-г хадгалах
+          setTemplateId(json.data.id || '');
           setFormTitle(json.data.title || 'Үйлчлүүлэгчийн анкет');
           setFormDescription(json.data.description || '');
           setQuestions(json.data.questions || []);
@@ -63,13 +62,11 @@ export default function PublicAnketPage({ params }: { params: Promise<{ companyi
     }));
   };
 
-  // 2. Бөглөсөн мэдээллээ сервер рүү илгээх
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     setErrorMessage('');
 
-    // Заавал бөглөх талбаруудыг шалгах
     for (const q of questions) {
       if (q.required && !answers[q.id]) {
         setErrorMessage(`"${q.label}" талбарыг заавал бөглөнө үү.`);
@@ -87,7 +84,7 @@ export default function PublicAnketPage({ params }: { params: Promise<{ companyi
         body: JSON.stringify({ 
           templateId, 
           answers, 
-          questions // Асуултын нэрсийг хадгалах зорилгоор хамт явуулна
+          questions 
         }),
       });
 
@@ -107,11 +104,11 @@ export default function PublicAnketPage({ params }: { params: Promise<{ companyi
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-50">
-        <p className="text-sm font-semibold text-slate-500 animate-pulse">Анкетын мэдээллийг ачаалж байна...</p>
-      </div>
-    );
+    return <LoadingComponent text="Анкетын мэдээллийг татаж байна..." />;
+  }
+
+  if (submitting) {
+    return <LoadingComponent text="Мэдээллийг илгээж байна..." />;
   }
 
   if (submitted) {
@@ -185,8 +182,7 @@ export default function PublicAnketPage({ params }: { params: Promise<{ companyi
               disabled={submitting}
               className="w-full bg-blue-600 hover:bg-blue-700 active:scale-98 text-white font-bold py-4 rounded-2xl transition-all mt-6 text-sm cursor-pointer shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              <Send size={16} />
-              {submitting ? 'Илгээж байна...' : 'Мэдээлэл илгээх'}
+              <Send size={16} /> Мэдээлэл илгээх
             </button>
           </form>
         </div>

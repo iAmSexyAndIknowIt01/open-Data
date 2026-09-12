@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Save, Plus, Trash2, CheckCircle2, Copy, Eye, Settings2, Sparkles, ExternalLink } from 'lucide-react';
 import Image from 'next/image';
+import LoadingComponent from '@/src/app/components/loading';
 
 interface Question {
   id: string;
@@ -35,7 +36,6 @@ export default function MyAnketPage() {
 
   // 1. Хуудас ачаалагдахад серверээс өгөгдлийг татаж авах
   useEffect(() => {
-
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setBaseUrl(window.location.origin); // Одоогийн домэйн URL-г авах
 
@@ -44,14 +44,12 @@ export default function MyAnketPage() {
         const res = await fetch('/api/templates');
         const json = await res.json();
 
-        // Фронт хэсгийн useEffect доторх GET хариуг авах хэсэг:
         if (json.success && json.data) {
           setFormTitle(json.data.title || '');
           setFormDescription(json.data.description || '');
           if (json.data.questions) {
             setQuestions(json.data.questions);
           }
-          // Компанийн ID-г төлөвт хадгалах
           if (json.data.company_id) {
             setCompanyId(json.data.company_id);
           }
@@ -122,9 +120,8 @@ export default function MyAnketPage() {
 
   const clientFormUrl = companyId 
   ? `${baseUrl}/open-data/form/${companyId}`
-  : `${baseUrl}/open-data/form/`; // companyId байхгүй бол ерөнхий холбоос
+  : `${baseUrl}/open-data/form/`;
   
-  // Утасны камераар уншихад шууд холбогдох QR зургийн холбоос (Public QR API ашиглав)
   const qrCodeImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(clientFormUrl)}`;
 
   const handleCopyLink = () => {
@@ -133,17 +130,17 @@ export default function MyAnketPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Өгөгдөл анх татаж байх үед харуулах лоадер
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-100">
-        <p className="text-sm font-semibold text-slate-500 animate-pulse">Мэдээллийг ачаалж байна...</p>
-      </div>
-    );
+    return <LoadingComponent text="Анкетын мэдээллийг ачаалж байна..." />;
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8 pb-20 font-sans antialiased text-slate-800">
+    <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8 pb-20 font-sans antialiased text-slate-800 relative">
       
+      {/* Хадгалж байх үед гарч ирэх бүтэн дэлгэцийн лоадер */}
+      {saving && <LoadingComponent text="Өөрчлөлтийг хадгалж байна..." />}
+
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 sm:p-8 rounded-3xl border border-slate-100 shadow-xs">
         <div className="space-y-1">
@@ -187,7 +184,7 @@ export default function MyAnketPage() {
             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 active:scale-98 text-white px-6 py-3 rounded-2xl font-bold text-sm transition-all shadow-md shadow-blue-500/20 cursor-pointer disabled:opacity-50"
           >
             <Save size={16} />
-            {saving ? 'Хадгалж байна...' : 'Өөрчлөлтийг хадгалах'}
+            Өөрчлөлтийг хадгалах
           </button>
         </div>
       </div>
@@ -294,7 +291,6 @@ export default function MyAnketPage() {
                         {q.required ? 'Заавал' : 'Заавал биш'}
                       </button>
 
-                      {/* default: true биш бол л устгах хогийн савны товчийг харуулна */}
                       {!q.default && (
                         <button
                           type="button"
@@ -352,14 +348,13 @@ export default function MyAnketPage() {
 
               <div className="bg-slate-50/80 p-6 rounded-3xl border border-slate-200/60 flex flex-col items-center justify-center space-y-4">
                 <div className="w-44 h-44 bg-white p-3 rounded-2xl border border-slate-200/80 flex items-center justify-center shadow-xs relative">
-                  {/* Next.js Image компонентоор солих */}
                   <Image
                     src={qrCodeImageUrl}
                     alt="Client Form QR Code"
                     width={176}
                     height={176}
                     className="w-full h-full object-contain rounded-lg"
-                    unoptimized // Гадаад API-аас ирж буй динамик QR код тул unoptimized байлгавал илүү тохиромжтой
+                    unoptimized
                   />
                 </div>
               </div>
@@ -404,7 +399,6 @@ export default function MyAnketPage() {
                   <select className="w-full px-4.5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-blue-600 cursor-pointer">
                     <option value="">Сонгох...</option>
                     {(() => {
-                      // options массив эсвэл string байвал түүнийг зөв задалж харуулах
                       let opts: string[] = [];
                       if (Array.isArray(q.options)) {
                         opts = q.options;
