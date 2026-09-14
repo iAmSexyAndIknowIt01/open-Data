@@ -1,21 +1,44 @@
 'use client';
 
-import { useState } from 'react';
-import { LayoutGrid, CheckCircle2, Edit3, X, Save } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { LayoutGrid, CheckCircle2, Edit3, X, Save, Loader2 } from 'lucide-react';
 
 export default function SettingsPage() {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
-  // Dashboard хуудас дээр харуулах модулиудын төлөв
   const [modules, setModules] = useState({
-    stats: true,          // Нийт өгөгдөл, хандалт гэх мэт статистик картууд
-    dataTable: true,      // Өгөгдлийн хүснэгт / placeholder хэсэг
-    analyticsWidget: false // Шуурхай аналитик график
+    stats: true,
+    dataTable: true,
+    analyticsWidget: false
   });
 
-  // Цуцлах үед өмнөх төлөв рүү буцаах зорилгоор түр хадгалах
   const [tempModules, setTempModules] = useState(modules);
+
+  // Хуудас ачаалагдахад API-аас тохиргоог татаж авах
+  useEffect(() => {
+    async function fetchSettings() {
+      try {
+        const res = await fetch('/api/settings');
+        const json = await res.json();
+        if (json.success && json.data) {
+          setModules({
+            stats: json.data.stats,
+            dataTable: json.data.dataTable,
+            analyticsWidget: json.data.analyticsWidget,
+          });
+          setTempModules(json.data);
+        }
+      } catch (err) {
+        console.error('Failed to load settings:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchSettings();
+  }, []);
 
   const handleEditClick = () => {
     setTempModules(modules);
@@ -32,14 +55,41 @@ export default function SettingsPage() {
     setModules(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem('dashboardModules', JSON.stringify(modules));
-    
-    setIsEditing(false);
-    setSuccessMessage(true);
-    setTimeout(() => setSuccessMessage(false), 3000);
+    setSaving(true);
+
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(modules),
+      });
+
+      const json = await res.json();
+
+      if (json.success) {
+        setIsEditing(false);
+        setSuccessMessage(true);
+        setTimeout(() => setSuccessMessage(false), 3000);
+      } else {
+        alert('Хадгалахад алдаа гарлаа.');
+      }
+    } catch (err) {
+      console.error('Failed to save settings:', err);
+      alert('Сүлжээний алдаа гарлаа.');
+    } finally {
+      setSaving(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
@@ -68,7 +118,6 @@ export default function SettingsPage() {
       )}
 
       <form onSubmit={handleSave} className="space-y-6">
-        {/* Dashboard Module Visibility Settings */}
         <div className="bg-white p-5 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-slate-100 gap-4">
             <div className="flex items-center gap-3">
@@ -90,9 +139,7 @@ export default function SettingsPage() {
             <div 
               onClick={() => handleToggle('stats')}
               className={`flex items-center justify-between p-4 sm:p-5 rounded-2xl border transition-all ${
-                isEditing 
-                  ? 'bg-slate-50 border-slate-200 cursor-pointer hover:bg-slate-100/80' 
-                  : 'bg-slate-50/60 border-slate-100'
+                isEditing ? 'bg-slate-50 border-slate-200 cursor-pointer hover:bg-slate-100/80' : 'bg-slate-50/60 border-slate-100'
               }`}
             >
               <div className="pr-4">
@@ -108,9 +155,7 @@ export default function SettingsPage() {
             <div 
               onClick={() => handleToggle('dataTable')}
               className={`flex items-center justify-between p-4 sm:p-5 rounded-2xl border transition-all ${
-                isEditing 
-                  ? 'bg-slate-50 border-slate-200 cursor-pointer hover:bg-slate-100/80' 
-                  : 'bg-slate-50/60 border-slate-100'
+                isEditing ? 'bg-slate-50 border-slate-200 cursor-pointer hover:bg-slate-100/80' : 'bg-slate-50/60 border-slate-100'
               }`}
             >
               <div className="pr-4">
@@ -126,9 +171,7 @@ export default function SettingsPage() {
             <div 
               onClick={() => handleToggle('analyticsWidget')}
               className={`flex items-center justify-between p-4 sm:p-5 rounded-2xl border transition-all ${
-                isEditing 
-                  ? 'bg-slate-50 border-slate-200 cursor-pointer hover:bg-slate-100/80' 
-                  : 'bg-slate-50/60 border-slate-100'
+                isEditing ? 'bg-slate-50 border-slate-200 cursor-pointer hover:bg-slate-100/80' : 'bg-slate-50/60 border-slate-100'
               }`}
             >
               <div className="pr-4">
@@ -142,21 +185,22 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Action Buttons (Only visible in Edit Mode) */}
         {isEditing && (
           <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-3 animate-in fade-in">
             <button 
               type="button"
               onClick={handleCancelClick}
+              disabled={saving}
               className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-600 font-bold px-6 py-3.5 rounded-2xl hover:bg-slate-50 transition-all text-sm cursor-pointer"
             >
               <X size={18} /> Цуцлах
             </button>
             <button 
               type="submit" 
-              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3.5 rounded-2xl shadow-lg shadow-blue-500/20 transition-all text-sm cursor-pointer"
+              disabled={saving}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3.5 rounded-2xl shadow-lg shadow-blue-500/20 transition-all text-sm cursor-pointer disabled:opacity-50"
             >
-              <Save size={18} /> Өөрчлөлтийг хадгалах
+              {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save size={18} />} Өөрчлөлтийг хадгалах
             </button>
           </div>
         )}

@@ -13,8 +13,7 @@ import Link from 'next/link';
 interface DashboardStats {
   totalData: string;
   views: string;
-  activeStatus: string;
-  growthRate: string;
+  growthRate: string; // Идэвхтэй статусын оронд өсөлтийн хурд ашиглахаар болгов
 }
 
 interface RecentSubmission {
@@ -38,8 +37,7 @@ export default function DashboardPage() {
   const [stats] = useState<DashboardStats>({
     totalData: '1,284',
     views: '45.2k',
-    activeStatus: '98%',
-    growthRate: '+12.5%',
+    growthRate: '+12.5%', // Идэвхтэй статусын оронд харуулах шинэ контент
   });
   const [companyName, setCompanyName] = useState('Компанийн нэр');
   
@@ -179,22 +177,23 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Идэвхтэй статусын оронд Өсөлтийн хурд (Growth Rate) харуулах хэсэг */}
         <div className="bg-white p-6 sm:p-7 rounded-3xl border border-slate-100 shadow-xs hover:shadow-md transition-all space-y-4 group sm:col-span-2 lg:col-span-1">
           <div className="flex items-center justify-between">
-            <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-xs">
-              <Activity size={22} />
+            <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-xs">
+              <TrendingUp size={22} />
             </div>
-            <span className="inline-flex items-center gap-1 text-xs font-extrabold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">
-              Тогтвортой
+            <span className="inline-flex items-center gap-1 text-xs font-extrabold text-purple-600 bg-purple-50 px-2.5 py-1 rounded-full">
+              <ArrowUpRight size={14} /> Эрчимтэй
             </span>
           </div>
           <div>
-            <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-1">Идэвхтэй статус</h3>
-            <p className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">{stats.activeStatus}</p>
+            <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-1">Өсөлтийн хурд</h3>
+            <p className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">{stats.growthRate}</p>
           </div>
           <div className="pt-3 border-t border-slate-50 flex items-center justify-between text-xs text-slate-400">
-            <span>Системийн хэвийн ажиллагаа</span>
-            <span className="font-bold text-blue-600">99.9%</span>
+            <span>Энэ сарын нийт өсөлт</span>
+            <span className="font-bold text-purple-600">Өндөр</span>
           </div>
         </div>
       </section>
@@ -292,7 +291,7 @@ export default function DashboardPage() {
 
       </div>
 
-      {/* EMPLOYEE ISSUES RESOLVED LEADERBOARD (Өмнө нь дээр байсан хэсгийг Тусламжийн өмнө буюу доор байрлуулав) */}
+      {/* EMPLOYEE ISSUES RESOLVED LEADERBOARD */}
       <section className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-100 shadow-xs space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
           <div>
@@ -353,7 +352,7 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {/* Additional Help / Support Section (Хамгийн доод хэсэгт байрласан хэвээр үлдсэн) */}
+      {/* Additional Help / Support Section */}
       <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-100 shadow-xs flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 shadow-xs">
