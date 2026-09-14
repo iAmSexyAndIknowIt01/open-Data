@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { 
   User, TrendingUp, Users, Database, ArrowUpRight, 
-  Sparkles, Activity, FileText, ArrowRight, 
+  Sparkles, FileText, ArrowRight, 
   ShieldCheck, CheckCircle2, BellRing, 
   HelpCircle, CheckCheck, BarChart3
 } from 'lucide-react';
