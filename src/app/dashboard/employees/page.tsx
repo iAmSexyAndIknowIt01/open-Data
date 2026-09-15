@@ -1,13 +1,16 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   Users, UserPlus, Search, Mail, Phone, ShieldCheck, X, Check, Filter, 
   LayoutGrid, List, Sparkles, Loader2 
 } from 'lucide-react';
 
 interface User {
-  id: string;
+  user_id?: string;
+  id?: string;
   first_name: string;
   last_name: string;
   email: string;
@@ -20,6 +23,7 @@ interface User {
 }
 
 export default function EmployeesPage() {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState('Бүгд');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
@@ -59,12 +63,11 @@ export default function EmployeesPage() {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchUsers();
   }, []);
 
   const filteredUsers = users.filter(user => {
-    const fullName = `${user.first_name} ${user.last_name}`.toLowerCase();
+    const fullName = `${user.first_name || ''} ${user.last_name || ''}`.toLowerCase();
     const matchesSearch = fullName.includes(searchTerm.toLowerCase()) || 
                           (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
                           (user.role && user.role.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -186,10 +189,20 @@ export default function EmployeesPage() {
       ) : filteredUsers.length > 0 ? (
         viewMode === 'grid' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filteredUsers.map((u) => (
+          {filteredUsers.map((u, index) => {
+            const userId = u.user_id || u.id;
+            return (
               <div 
-                key={u.id} 
-                className="bg-white p-6 rounded-3xl border border-slate-100/80 shadow-2xs hover:shadow-md transition-all space-y-5 flex flex-col justify-between group relative overflow-hidden"
+                key={userId || index} 
+                onClick={() => {
+                  console.log("Шилжих ID:", userId);
+                  if (userId) {
+                    router.push(`/dashboard/employees/${userId}`);
+                  } else {
+                    alert('Хэрэглэгчийн ID олдсонгүй.');
+                  }
+                }}
+                className="bg-white p-6 rounded-3xl border border-slate-100/80 shadow-2xs hover:shadow-md transition-all space-y-5 flex flex-col justify-between group relative overflow-hidden cursor-pointer"
               >
                 <div className="space-y-4">
                   <div className="flex items-start justify-between gap-3">
@@ -235,7 +248,8 @@ export default function EmployeesPage() {
                   </span>
                 </div>
               </div>
-            ))}
+            );
+          })}
           </div>
         ) : (
           <div className="bg-white rounded-3xl border border-slate-100 shadow-2xs overflow-hidden">
@@ -251,37 +265,52 @@ export default function EmployeesPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs sm:text-sm font-medium text-slate-700">
-                  {filteredUsers.map((u) => (
-                    <tr key={u.id} className="hover:bg-slate-50/60 transition-colors group">
-                      <td className="py-4 px-6">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-2xs">
-                            {u.first_name ? u.first_name.charAt(0) : 'U'}
+                  {filteredUsers.map((u, index) => {
+                    const userId = u.user_id || u.id;
+                    return (
+                      <tr 
+                        key={userId || index} 
+                        onClick={() => {
+                          if (userId) {
+                            router.push(`/dashboard/employees/${userId}`);
+                          } else {
+                            alert('Хэрэглэгчийн ID олдсонгүй.');
+                          }
+                        }}
+                        className="hover:bg-slate-50/60 transition-colors group cursor-pointer"
+                      >
+                        <td className="py-4 px-6">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-2xs">
+                              {u.first_name ? u.first_name.charAt(0) : 'U'}
+                            </div>
+                            <span className="font-extrabold text-slate-900 group-hover:text-blue-600 transition-colors">
+                              {u.first_name} {u.last_name}
+                            </span>
                           </div>
-                          <span className="font-extrabold text-slate-900">{u.first_name} {u.last_name}</span>
-                        </div>
-                      </td>
-                      <td className="py-4 px-6">
-                        <p className="font-bold text-slate-800">{u.role || 'Ажилтан'}</p>
-                      </td>
-                      <td className="py-4 px-6 text-slate-500 text-xs space-y-0.5">
-                        <p>{u.email}</p>
-                        <p className="text-slate-400">{u.phone || '-'}</p>
-                      </td>
-                      <td className="py-4 px-6">
-                        <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full inline-block ${
-                          u.is_active !== false 
-                            ? 'bg-emerald-50 text-emerald-600' 
-                            : 'bg-slate-100 text-slate-500'
-                        }`}>
-                          {u.is_active !== false ? 'Идэвхтэй' : 'Идэвхгүй'}
-                        </span>
-                      </td>
-                      <td className="py-4 px-6 text-right text-xs text-slate-400">
-                        {u.created_at ? new Date(u.created_at).toLocaleDateString() : '-'}
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="py-4 px-6">
+                          <p className="font-bold text-slate-800">{u.role || 'Ажилтан'}</p>
+                        </td>
+                        <td className="py-4 px-6 text-slate-500 text-xs space-y-0.5">
+                          <p>{u.email}</p>
+                          <p className="text-slate-400">{u.phone || '-'}</p>
+                        </td>
+                        <td className="py-4 px-6">
+                          <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full inline-block ${
+                            u.is_active !== false 
+                              ? 'bg-emerald-50 text-emerald-600' 
+                              : 'bg-slate-100 text-slate-500'
+                          }`}>
+                            {u.is_active !== false ? 'Идэвхтэй' : 'Идэвхгүй'}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6 text-right text-xs text-slate-400">
+                          {u.created_at ? new Date(u.created_at).toLocaleDateString() : '-'}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
