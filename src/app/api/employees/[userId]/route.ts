@@ -8,7 +8,6 @@ export async function GET(
   try {
     const { userId } = await params;
 
-    // Хэрэв userId нь "undefined" эсвэл хоосон байвал шууд алдаа буцаана
     if (!userId || userId === 'undefined') {
       return NextResponse.json(
         { success: false, error: 'Хэрэглэгчийн ID буруу байна.' },
@@ -16,8 +15,7 @@ export async function GET(
       );
     }
 
-    // Анхаарах: mt_user хүснэгтэд ямар баганууд байгаагаар энд бичнэ. 
-    // u.created_at байхгүй бол үүнийг хасах эсвэл c.created_at болгоно.
+    // mt_user хүснэгтийн бүх баганыг (*) татаж авна (нууц үгээс бусад)
     const query = `
       SELECT 
         u.user_id,
@@ -25,10 +23,14 @@ export async function GET(
         u.email,
         u.first_name,
         u.last_name,
+        u.male,
         u.phone,
         u.address,
-        u.role,
         u.is_active,
+        u.create_date,
+        u.update_date,
+        u.role,
+        u.position,
         c.company_name
       FROM mt_user u
       LEFT JOIN mt_company c ON u.company_id = c.company_id
