@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { LayoutDashboard, Database, Settings, LogOut, User, BarChart3, ChevronDown, Menu, X, FileText, Users, UserCheck } from 'lucide-react';
+import { LayoutDashboard, Database, Settings, LogOut, User, BarChart3, ChevronDown, Menu, X, FileText, Users, UserCheck, Briefcase } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -25,7 +25,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/dashboard/data', icon: Database, label: 'Өгөгдөл' },
     { href: '/dashboard/my-anket', icon: FileText, label: 'Анкет' },
     { href: '/dashboard/employees', icon: Users, label: 'Ажилчид' },
-    { href: '/dashboard/customers', icon: UserCheck, label: 'Харилцагч' }, // Харалцагч цэсийг энд нэмэв
+    { href: '/dashboard/customers', icon: UserCheck, label: 'Харилцагч' },
+    { href: '/dashboard/services', icon: Briefcase, label: 'Үйлчилгээ' }, // Үйлчилгээ цэсийг энд нэмэв
     { href: '/dashboard/analytics', icon: BarChart3, label: 'Аналитик' },
     { href: '/dashboard/settings', icon: Settings, label: 'Тохиргоо' },
   ];
