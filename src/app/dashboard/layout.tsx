@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { LayoutDashboard, Database, Settings, LogOut, User, BarChart3, ChevronDown, Menu, X, FileText, Users } from 'lucide-react';
+import { LayoutDashboard, Database, Settings, LogOut, User, BarChart3, ChevronDown, Menu, X, FileText, Users, UserCheck } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -24,7 +24,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/dashboard', icon: LayoutDashboard, label: 'Удирдлага' },
     { href: '/dashboard/data', icon: Database, label: 'Өгөгдөл' },
     { href: '/dashboard/my-anket', icon: FileText, label: 'Анкет' },
-    { href: '/dashboard/employees', icon: Users, label: 'Ажилчид' }, // Ажилчид цэсийг энд нэмэв
+    { href: '/dashboard/employees', icon: Users, label: 'Ажилчид' },
+    { href: '/dashboard/customers', icon: UserCheck, label: 'Харилцагч' }, // Харалцагч цэсийг энд нэмэв
     { href: '/dashboard/analytics', icon: BarChart3, label: 'Аналитик' },
     { href: '/dashboard/settings', icon: Settings, label: 'Тохиргоо' },
   ];
@@ -60,7 +61,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     router.push('/login');
   };
 
-  // Овог нэрийн эхний үсгийг гаргах (Жишээ: Бат-Эрдэнэ Б. -> ББ эсвэл Л.Оюун -> ОЛ)
+  // Овог нэрийн эхний үсгийг гаргах
   const getInitials = () => {
     if (!userData) return 'КО';
     const lastInitial = userData.last_name ? userData.last_name.charAt(0) : '';
