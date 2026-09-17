@@ -4,8 +4,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-  Users, UserPlus, Search, Mail, Phone, ShieldCheck, X, Check, Filter, 
-  LayoutGrid, List, Sparkles, Loader2 
+  Users, UserPlus, Search, X, Check, Filter, 
+  Sparkles, Loader2 
 } from 'lucide-react';
 
 interface User {
@@ -26,7 +26,6 @@ export default function EmployeesPage() {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState('Бүгд');
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -37,8 +36,9 @@ export default function EmployeesPage() {
     email: '',
     password: '',
     phone: '',
-    role: 'Ажилтан',
+    role: 'user', 
     address: '',
+    male: '',
   });
 
   const [users, setUsers] = useState<User[]>([]);
@@ -71,7 +71,16 @@ export default function EmployeesPage() {
     const matchesSearch = fullName.includes(searchTerm.toLowerCase()) || 
                           (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
                           (user.role && user.role.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesRole = selectedRole === 'Бүгд' || user.role === selectedRole;
+    
+    // Role-ийг англи болон монголоор харьцуулан шүүх логик
+    let matchesRole = selectedRole === 'Бүгд';
+    if (!matchesRole) {
+      const targetRole = user.role?.toLowerCase();
+      if (selectedRole === 'Админ' && targetRole === 'admin') matchesRole = true;
+      if (selectedRole === 'Менежер' && targetRole === 'manager') matchesRole = true;
+      if (selectedRole === 'Ажилтан' && (targetRole === 'user' || targetRole === 'ажилтан')) matchesRole = true;
+    }
+
     return matchesSearch && matchesRole;
   });
 
@@ -90,7 +99,16 @@ export default function EmployeesPage() {
       const result = await res.json();
       if (result.success) {
         setUsers([result.data, ...users]);
-        setNewUser({ first_name: '', last_name: '', email: '', password: '', phone: '', role: 'Ажилтан', address: '' });
+        setNewUser({ 
+          first_name: '', 
+          last_name: '', 
+          email: '', 
+          password: '', 
+          phone: '', 
+          role: 'user', 
+          address: '', 
+          male: '' 
+        });
         setIsModalOpen(false);
       } else {
         alert(result.error || 'Алдаа гарлаа.');
@@ -103,6 +121,16 @@ export default function EmployeesPage() {
     }
   };
 
+  const getRoleDisplayName = (role: string) => {
+    switch (role?.toLowerCase()) {
+      case 'admin': return 'Админ';
+      case 'manager': return 'Менежер';
+      case 'user': 
+      case 'ажилтан': return 'Ажилтан';
+      default: return role || 'Ажилтан';
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8 pb-24 font-sans antialiased text-slate-800 px-4 sm:px-6">
       
@@ -112,11 +140,11 @@ export default function EmployeesPage() {
 
         <div className="space-y-2 relative z-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-extrabold tracking-wider uppercase">
-            <Sparkles size={13} /> mt_user удирдлага
+            <Sparkles size={13} /> Хэрэглэгчийн удирдлага
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Компанийн хэрэглэгчид</h1>
           <p className="text-slate-500 text-xs sm:text-sm max-w-xl">
-            mt_user хүснэгтээс тухайн компанийн бүртгэлтэй хэрэглэгчдийн жагсаалтыг харах болон шинээр бүртгэх.
+            Бүртгэлтэй хэрэглэгчдийн жагсаалтыг харах болон шинээр бүртгэх.
           </p>
         </div>
 
@@ -158,164 +186,79 @@ export default function EmployeesPage() {
               </button>
             ))}
           </div>
-
-          <div className="flex items-center bg-slate-100/80 p-1 rounded-2xl border border-slate-200/60 shrink-0">
-            <button
-              onClick={() => setViewMode('grid')}
-              className={`p-2 rounded-xl transition-all cursor-pointer ${
-                viewMode === 'grid' ? 'bg-white text-blue-600 shadow-xs' : 'text-slate-500 hover:text-slate-900'
-              }`}
-            >
-              <LayoutGrid size={16} />
-            </button>
-            <button
-              onClick={() => setViewMode('table')}
-              className={`p-2 rounded-xl transition-all cursor-pointer ${
-                viewMode === 'table' ? 'bg-white text-blue-600 shadow-xs' : 'text-slate-500 hover:text-slate-900'
-              }`}
-            >
-              <List size={16} />
-            </button>
-          </div>
         </div>
       </div>
 
-      {/* Content */}
+      {/* Content - Байнга List (Хүснэгт) хэлбэрээр */}
       {loading ? (
         <div className="py-20 text-center bg-white rounded-3xl border border-slate-100 shadow-2xs space-y-3">
           <Loader2 size={32} className="animate-spin text-blue-600 mx-auto" />
           <p className="text-xs text-slate-400 font-medium">Дата ачааллаж байна...</p>
         </div>
       ) : filteredUsers.length > 0 ? (
-        viewMode === 'grid' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredUsers.map((u, index) => {
-            const userId = u.user_id || u.id;
-            return (
-              <div 
-                key={userId || index} 
-                onClick={() => {
-                  console.log("Шилжих ID:", userId);
-                  if (userId) {
-                    router.push(`/dashboard/employees/${userId}`);
-                  } else {
-                    alert('Хэрэглэгчийн ID олдсонгүй.');
-                  }
-                }}
-                className="bg-white p-6 rounded-3xl border border-slate-100/80 shadow-2xs hover:shadow-md transition-all space-y-5 flex flex-col justify-between group relative overflow-hidden cursor-pointer"
-              >
-                <div className="space-y-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3.5">
-                      <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-extrabold text-base shadow-sm shrink-0">
-                        {u.first_name ? u.first_name.charAt(0) : 'U'}
-                      </div>
-                      <div>
-                        <h3 className="font-extrabold text-base text-slate-900 group-hover:text-blue-600 transition-colors">
-                          {u.first_name} {u.last_name}
-                        </h3>
-                        <p className="text-xs text-slate-500 font-medium">{u.role || 'Ажилтан'}</p>
-                      </div>
-                    </div>
-                    
-                    <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full shrink-0 ${
-                      u.is_active !== false 
-                        ? 'bg-emerald-50 text-emerald-600' 
-                        : 'bg-slate-100 text-slate-500'
-                    }`}>
-                      {u.is_active !== false ? 'Идэвхтэй' : 'Идэвхгүй'}
-                    </span>
-                  </div>
-
-                  <div className="space-y-2 pt-3 border-t border-slate-50 text-xs font-medium text-slate-600">
-                    <div className="flex items-center gap-2.5">
-                      <Mail size={15} className="text-slate-400 shrink-0" />
-                      <span className="truncate">{u.email}</span>
-                    </div>
-                    <div className="flex items-center gap-2.5">
-                      <Phone size={15} className="text-slate-400 shrink-0" />
-                      <span>{u.phone || 'Дугаар байхгүй'}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-slate-50 flex items-center justify-between text-xs">
-                  <span className="font-bold text-emerald-600 inline-flex items-center gap-1">
-                    <ShieldCheck size={14} /> mt_user
-                  </span>
-                  <span className="text-[11px] text-slate-400">
-                    {u.created_at ? new Date(u.created_at).toLocaleDateString() : ''}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-          </div>
-        ) : (
-          <div className="bg-white rounded-3xl border border-slate-100 shadow-2xs overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50/80 border-b border-slate-100 text-[11px] font-black uppercase tracking-wider text-slate-400">
-                    <th className="py-4 px-6">Хэрэглэгч</th>
-                    <th className="py-4 px-6">Эрх / Албан тушаал</th>
-                    <th className="py-4 px-6">Холбоо барих</th>
-                    <th className="py-4 px-6">Статус</th>
-                    <th className="py-4 px-6 text-right">Бүртгэгдсэн огноо</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-xs sm:text-sm font-medium text-slate-700">
-                  {filteredUsers.map((u, index) => {
-                    const userId = u.user_id || u.id;
-                    return (
-                      <tr 
-                        key={userId || index} 
-                        onClick={() => {
-                          if (userId) {
-                            router.push(`/dashboard/employees/${userId}`);
-                          } else {
-                            alert('Хэрэглэгчийн ID олдсонгүй.');
-                          }
-                        }}
-                        className="hover:bg-slate-50/60 transition-colors group cursor-pointer"
-                      >
-                        <td className="py-4 px-6">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-2xs">
-                              {u.first_name ? u.first_name.charAt(0) : 'U'}
-                            </div>
-                            <span className="font-extrabold text-slate-900 group-hover:text-blue-600 transition-colors">
-                              {u.first_name} {u.last_name}
-                            </span>
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-2xs overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50/80 border-b border-slate-100 text-[11px] font-black uppercase tracking-wider text-slate-400">
+                  <th className="py-4 px-6">Хэрэглэгч</th>
+                  <th className="py-4 px-6">Эрх / Албан тушаал</th>
+                  <th className="py-4 px-6">Холбоо барих</th>
+                  <th className="py-4 px-6">Статус</th>
+                  <th className="py-4 px-6 text-right">Бүртгэгдсэн огноо</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-xs sm:text-sm font-medium text-slate-700">
+                {filteredUsers.map((u, index) => {
+                  const userId = u.user_id || u.id;
+                  return (
+                    <tr 
+                      key={userId || index} 
+                      onClick={() => {
+                        if (userId) {
+                          router.push(`/dashboard/employees/${userId}`);
+                        } else {
+                          alert('Хэрэглэгчийн ID олдсонгүй.');
+                        }
+                      }}
+                      className="hover:bg-slate-50/60 transition-colors group cursor-pointer"
+                    >
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-2xs">
+                            {u.first_name ? u.first_name.charAt(0) : 'U'}
                           </div>
-                        </td>
-                        <td className="py-4 px-6">
-                          <p className="font-bold text-slate-800">{u.role || 'Ажилтан'}</p>
-                        </td>
-                        <td className="py-4 px-6 text-slate-500 text-xs space-y-0.5">
-                          <p>{u.email}</p>
-                          <p className="text-slate-400">{u.phone || '-'}</p>
-                        </td>
-                        <td className="py-4 px-6">
-                          <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full inline-block ${
-                            u.is_active !== false 
-                              ? 'bg-emerald-50 text-emerald-600' 
-                              : 'bg-slate-100 text-slate-500'
-                          }`}>
-                            {u.is_active !== false ? 'Идэвхтэй' : 'Идэвхгүй'}
+                          <span className="font-extrabold text-slate-900 group-hover:text-blue-600 transition-colors">
+                            {u.first_name} {u.last_name}
                           </span>
-                        </td>
-                        <td className="py-4 px-6 text-right text-xs text-slate-400">
-                          {u.created_at ? new Date(u.created_at).toLocaleDateString() : '-'}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                        </div>
+                      </td>
+                      <td className="py-4 px-6">
+                        <p className="font-bold text-slate-800">{getRoleDisplayName(u.role)}</p>
+                      </td>
+                      <td className="py-4 px-6 text-slate-500 text-xs space-y-0.5">
+                        <p>{u.email}</p>
+                        <p className="text-slate-400">{u.phone || '-'}</p>
+                      </td>
+                      <td className="py-4 px-6">
+                        <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full inline-block ${
+                          u.is_active !== false 
+                            ? 'bg-emerald-50 text-emerald-600' 
+                            : 'bg-slate-100 text-slate-500'
+                        }`}>
+                          {u.is_active !== false ? 'Идэвхтэй' : 'Идэвхгүй'}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6 text-right text-xs text-slate-400">
+                        {u.created_at ? new Date(u.created_at).toLocaleDateString() : '-'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-        )
+        </div>
       ) : (
         <div className="py-20 text-center bg-white rounded-3xl border border-slate-100 shadow-2xs space-y-3">
           <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto shadow-xs">
@@ -333,7 +276,7 @@ export default function EmployeesPage() {
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div className="space-y-0.5">
                 <h3 className="font-black text-lg text-slate-900">Шинэ хэрэглэгч нэмэх</h3>
-                <p className="text-xs text-slate-400">mt_user хүснэгт рүү шинээр хэрэглэгч бүртгэх.</p>
+                <p className="text-xs text-slate-400">Системд шинээр хэрэглэгч бүртгэх.</p>
               </div>
               <button 
                 onClick={() => setIsModalOpen(false)}
@@ -405,15 +348,26 @@ export default function EmployeesPage() {
               </div>
 
               <div className="space-y-1.5">
+                <label className="text-xs font-extrabold text-slate-700 uppercase tracking-wider">Хаяг</label>
+                <input 
+                  type="text" 
+                  placeholder="Гэрийн хаяг"
+                  value={newUser.address}
+                  onChange={(e) => setNewUser({...newUser, address: e.target.value})}
+                  className="w-full px-4 py-3 rounded-2xl bg-slate-50/80 border border-slate-200 text-sm font-medium focus:outline-hidden focus:border-blue-500 focus:bg-white transition-all"
+                />
+              </div>
+
+              <div className="space-y-1.5">
                 <label className="text-xs font-extrabold text-slate-700 uppercase tracking-wider">Хэрэглэгчийн эрх (Role)</label>
                 <select 
                   value={newUser.role}
                   onChange={(e) => setNewUser({...newUser, role: e.target.value})}
                   className="w-full px-4 py-3 rounded-2xl bg-slate-50/80 border border-slate-200 text-sm font-medium focus:outline-hidden focus:border-blue-500 focus:bg-white transition-all cursor-pointer"
                 >
-                  <option value="Ажилтан">Ажилтан</option>
-                  <option value="Менежер">Менежер</option>
-                  <option value="Админ">Админ</option>
+                  <option value="user">Ажилтан</option>
+                  <option value="manager">Менежер</option>
+                  <option value="admin">Админ</option>
                 </select>
               </div>
 

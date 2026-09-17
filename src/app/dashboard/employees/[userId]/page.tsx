@@ -4,8 +4,9 @@ import { useState, useEffect, use, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   ArrowLeft, Mail, Phone, ShieldCheck, MapPin, Calendar, 
-  Loader2, CheckCircle2, XCircle, Edit3, Save, X, Loader
+  CheckCircle2, XCircle, Edit3, Save, X, Loader
 } from 'lucide-react';
+import Loading from '@/src/app/components/loading'; // Эсвэл таны төслийн замналаас хамаарч: '@/app/components/loading'
 
 interface UserDetail {
   [x: string]: ReactNode;
@@ -90,13 +91,9 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ userI
     }
   };
 
+  // Өгөгдөл ачаалж байх үед loading.tsx компонент ашиглах
   if (loading) {
-    return (
-      <div className="max-w-4xl mx-auto py-28 text-center space-y-3">
-        <Loader2 size={32} className="animate-spin text-blue-600 mx-auto" />
-        <p className="text-xs text-slate-400 font-medium">Хэрэглэгчийн мэдээллийг ачааллаж байна...</p>
-      </div>
-    );
+    return <Loading />;
   }
 
   if (error || !user || !editForm) {
@@ -320,7 +317,7 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ userI
           </div>
         </div>
 
-        {/* Full Database Fields Card (mt_user бүх дата жагсаалт) */}
+        {/* Full Database Fields Card (mt_user бүх дата - Table хэлбэртэй) */}
         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-100 shadow-2xs space-y-5">
           <div className="flex items-center justify-between pb-4 border-b border-slate-100">
             <div>
@@ -328,73 +325,80 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ userI
               <p className="text-xs text-slate-400">Өгөгдлийн санд хадгалагдсан бүх талбарууд</p>
             </div>
             <span className="text-[10px] font-black px-2.5 py-1 bg-blue-50 text-blue-600 rounded-lg uppercase">
-              Database Raw Data
+              Database Table Data
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {Object.entries(editForm).map(([key, value]) => {
-              if (key === 'password_hash') return null;
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-slate-100 text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">
+                  <th className="py-3 px-4">Талбар (Column)</th>
+                  <th className="py-3 px-4">Утга (Value)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-xs sm:text-sm">
+                {Object.entries(editForm).map(([key, value]) => {
+                  if (key === 'password_hash') return null;
 
-              // Зарим системчилсэн талбаруудыг зөвхөн харуулах (ID, огноо г.м)
-              const isReadOnly = ['user_id', 'company_id', 'company_name', 'create_date', 'update_date'].includes(key);
+                  const isReadOnly = ['user_id', 'company_id', 'company_name', 'create_date', 'update_date'].includes(key);
 
-              return (
-                <div key={key} className="p-3.5 rounded-2xl bg-slate-50/70 border border-slate-100 flex flex-col justify-between gap-1.5">
-                  <span className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">
-                    {columnLabels[key] || key}
-                  </span>
-
-                  {!isEditing || isReadOnly ? (
-                    <span className="text-xs sm:text-sm font-bold text-slate-800 break-all">
-                      {renderValue(key, user[key])}
-                    </span>
-                  ) : (
-                    // Edit mode inputs based on field type
-                    key === 'male' ? (
-                      <select
-                        value={String(value ?? '')}
-                        onChange={(e) => setEditForm({...editForm, male: e.target.value || null})}
-                        className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold bg-white text-slate-800"
-                      >
-                        <option value="male">Эрэгтэй</option>
-                        <option value="female">Эмэгтэй</option>
-                        <option value="">Сонгоогүй</option>
-                      </select>
-                    ) : key === 'is_active' ? (
-                      <select
-                        value={value === true ? 'true' : 'false'}
-                        onChange={(e) => {
-                          const val = e.target.value === 'true';
-                          setEditForm({...editForm, is_active: val});
-                        }}
-                        className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold bg-white text-slate-800"
-                      >
-                        <option value="true">Тийм</option>
-                        <option value="false">Үгүй</option>
-                      </select>
-                    ) : key === 'role' ? (
-                      <select
-                        value={String(value ?? 'User')}
-                        onChange={(e) => setEditForm({...editForm, role: e.target.value})}
-                        className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold bg-white text-slate-800"
-                      >
-                        <option value="Admin">Admin</option>
-                        <option value="Manager">Manager</option>
-                        <option value="User">User</option>
-                      </select>
-                    ) : (
-                      <input
-                        type="text"
-                        value={value !== null && value !== undefined ? String(value) : ''}
-                        onChange={(e) => setEditForm({...editForm, [key]: e.target.value})}
-                        className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold bg-white text-slate-800"
-                      />
-                    )
-                  )}
-                </div>
-              );
-            })}
+                  return (
+                    <tr key={key} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="py-3.5 px-4 font-extrabold text-slate-500 w-1/3">
+                        {columnLabels[key] || key}
+                      </td>
+                      <td className="py-3.5 px-4 font-bold text-slate-800 w-2/3 break-all">
+                        {!isEditing || isReadOnly ? (
+                          renderValue(key, user[key])
+                        ) : (
+                          key === 'male' ? (
+                            <select
+                              value={String(value ?? '')}
+                              onChange={(e) => setEditForm({...editForm, male: e.target.value || null})}
+                              className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold bg-white text-slate-800"
+                            >
+                              <option value="male">Эрэгтэй</option>
+                              <option value="female">Эмэгтэй</option>
+                              <option value="">Сонгоогүй</option>
+                            </select>
+                          ) : key === 'is_active' ? (
+                            <select
+                              value={value === true ? 'true' : 'false'}
+                              onChange={(e) => {
+                                const val = e.target.value === 'true';
+                                setEditForm({...editForm, is_active: val});
+                              }}
+                              className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold bg-white text-slate-800"
+                            >
+                              <option value="true">Тийм</option>
+                              <option value="false">Үгүй</option>
+                            </select>
+                          ) : key === 'role' ? (
+                            <select
+                              value={String(value ?? 'User')}
+                              onChange={(e) => setEditForm({...editForm, role: e.target.value})}
+                              className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold bg-white text-slate-800"
+                            >
+                              <option value="Admin">Admin</option>
+                              <option value="Manager">Manager</option>
+                              <option value="User">User</option>
+                            </select>
+                          ) : (
+                            <input
+                              type="text"
+                              value={value !== null && value !== undefined ? String(value) : ''}
+                              onChange={(e) => setEditForm({...editForm, [key]: e.target.value})}
+                              className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold bg-white text-slate-800"
+                            />
+                          )
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
 
           {isEditing && (

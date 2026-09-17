@@ -1,14 +1,15 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { pool } from '../../../lib/db'; // Төслийн замын дагуу тохируулна уу
-import bcrypt from 'bcrypt'; // Нууц үг хашихад ашиглаж болно
+import { pool } from '../../../lib/db';
+import bcrypt from 'bcrypt';
+import { randomUUID } from 'crypto';
 
-// 1. GET метод: Cookie-гээс company_id-г авч mt_user хүснэгтээс тухайн компанид хамаарах бүх хэрэглэгчдийг татах
+// 1. GET метод: Компанийн бүх хэрэглэгчдийг авах
 export async function GET() {
   try {
-    const cookieStore = cookies();
-    const userId = (await cookieStore).get('user_id')?.value;
-    const companyId = (await cookieStore).get('company_id')?.value;
+    const cookieStore = await cookies();
+    const userId = cookieStore.get('user_id')?.value;
+    const companyId = cookieStore.get('company_id')?.value;
 
     if (!userId || !companyId) {
       return NextResponse.json(
@@ -17,7 +18,6 @@ export async function GET() {
       );
     }
 
-    // Тухайн компанид хамаарах бүх хэрэглэгчдийг (ажилчдыг) mt_user хүснэгтээс татах
     const usersQuery = `
       SELECT 
         user_id AS id, 
@@ -52,12 +52,12 @@ export async function GET() {
   }
 }
 
-// 2. POST метод: mt_user хүснэгт рүү шинэ хэрэглэгч (ажилтан) бүртгэх
+// 2. POST метод: Шинэ хэрэглэгч бүртгэх
 export async function POST(request: Request) {
   try {
-    const cookieStore = cookies();
-    const currentUserId = (await cookieStore).get('user_id')?.value;
-    const companyId = (await cookieStore).get('company_id')?.value;
+    const cookieStore = await cookies();
+    const currentUserId = cookieStore.get('user_id')?.value;
+    const companyId = cookieStore.get('company_id')?.value;
 
     if (!currentUserId || !companyId) {
       return NextResponse.json(
@@ -76,13 +76,13 @@ export async function POST(request: Request) {
       );
     }
 
-    // Нууц үг байхгүй бол түр зуурын нууц үг үүсгэх эсвэл дамжуулна
     const plainPassword = password || '12345678';
     const passwordHash = await bcrypt.hash(plainPassword, 10);
+    const newUserId = randomUUID();
 
     const insertQuery = `
-      INSERT INTO mt_user (company_id, email, password_hash, first_name, last_name, male, phone, address, role)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      INSERT INTO mt_user (user_id, company_id, email, password_hash, first_name, last_name, male, phone, address, role)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING 
         user_id AS id, 
         company_id, 
@@ -98,12 +98,13 @@ export async function POST(request: Request) {
     `;
     
     const values = [
+      newUserId,
       companyId, 
       email, 
       passwordHash, 
       first_name, 
       last_name, 
-      male ?? null, 
+      male ?? true, 
       phone || null, 
       address || null, 
       role || 'Ажилтан'
@@ -123,8 +124,8 @@ export async function POST(request: Request) {
       typeof error === 'object' &&
       error !== null &&
       'code' in error &&
-      error.code === '23505'
-    ) { // Unique violation (email давхардсан)
+      (error as { code?: string }).code === '23505'
+    ) {
       return NextResponse.json(
         { success: false, error: 'Энэ имэйл хаяг аль хэдийн бүртгэгдсэн байна.' },
         { status: 400 }
