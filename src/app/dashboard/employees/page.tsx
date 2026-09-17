@@ -7,6 +7,8 @@ import {
   Users, UserPlus, Search, X, Check, Filter, 
   Sparkles, Loader2 
 } from 'lucide-react';
+// Loading компонент оруулж ирэх хэсэг (зам болон нэрийг өөрийн төслийн бүтцээр шалгаарай)
+import Loading from '@/src/app/components/loading';
 
 interface User {
   user_id?: string;
@@ -72,7 +74,6 @@ export default function EmployeesPage() {
                           (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
                           (user.role && user.role.toLowerCase().includes(searchTerm.toLowerCase()));
     
-    // Role-ийг англи болон монголоор харьцуулан шүүх логик
     let matchesRole = selectedRole === 'Бүгд';
     if (!matchesRole) {
       const targetRole = user.role?.toLowerCase();
@@ -189,11 +190,10 @@ export default function EmployeesPage() {
         </div>
       </div>
 
-      {/* Content - Байнга List (Хүснэгт) хэлбэрээр */}
+      {/* Content - Энд Loading компонентийг байрлуулав */}
       {loading ? (
-        <div className="py-20 text-center bg-white rounded-3xl border border-slate-100 shadow-2xs space-y-3">
-          <Loader2 size={32} className="animate-spin text-blue-600 mx-auto" />
-          <p className="text-xs text-slate-400 font-medium">Дата ачааллаж байна...</p>
+        <div className="py-12 bg-white rounded-3xl border border-slate-100 shadow-2xs flex items-center justify-center">
+          <Loading />
         </div>
       ) : filteredUsers.length > 0 ? (
         <div className="bg-white rounded-3xl border border-slate-100 shadow-2xs overflow-hidden">
