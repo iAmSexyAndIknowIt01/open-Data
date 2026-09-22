@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   Wrench, Plus, Search, Clock, CheckCircle2, 
-  X, LayoutList, LayoutGrid, User, Briefcase, Calendar, ShieldAlert 
+  X, LayoutList, LayoutGrid, User, Briefcase, ShieldAlert 
 } from 'lucide-react';
 import Loading from '@/src/app/components/loading';
 
@@ -29,6 +30,7 @@ interface OptionData {
 }
 
 export default function WorkshopPage() {
+  const router = useRouter();
   const [works, setWorks] = useState<WorkItem[]>([]);
   const [options, setOptions] = useState<OptionData>({ individuals: [], companies: [], services: [], employees: [] });
   const [loading, setLoading] = useState(true);
@@ -37,7 +39,6 @@ export default function WorkshopPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Form state
   const [formData, setFormData] = useState({
     title: '',
     customer_type: 'individual' as 'individual' | 'company',
@@ -60,7 +61,6 @@ export default function WorkshopPage() {
         setWorks(result.data);
       }
 
-      // Dropdown сонголтуудыг татах
       const optRes = await fetch('/api/workshop?action=options');
       const optResult = await optRes.json();
       if (optResult.success) {
@@ -77,7 +77,6 @@ export default function WorkshopPage() {
     fetchData();
   }, []);
 
-  // Үйлчилгээ сонгоход үнийг автоматаар бөглөх
   const handleServiceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const sId = e.target.value;
     const selectedService = options.services.find(s => s.service_id.toString() === sId);
@@ -133,47 +132,49 @@ export default function WorkshopPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'completed':
-        return <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600"><CheckCircle2 size={12} /> Дууссан</span>;
+        return <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 shrink-0"><CheckCircle2 size={10} /> Дууссан</span>;
       case 'in_progress':
-        return <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-blue-50 text-blue-600"><Wrench size={12} /> Хийгдэж байна</span>;
+        return <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 shrink-0"><Wrench size={10} /> Хийгдэж байна</span>;
       case 'cancelled':
-        return <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-red-50 text-red-600"><X size={12} /> Цуцлагдсан</span>;
+        return <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-red-50 text-red-600 shrink-0"><X size={10} /> Цуцлагдсан</span>;
       default:
-        return <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-amber-50 text-amber-600"><Clock size={12} /> Хүлээгдэж буй</span>;
+        return <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 shrink-0"><Clock size={10} /> Хүлээгдэж буй</span>;
     }
   };
 
   return (
-    <div className="space-y-6 pb-20">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-100 shadow-2xs">
+    <div className="space-y-4 sm:space-y-6 pb-20">
+      {/* Header section */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-100 shadow-2xs">
         <div>
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900">Ажлын удирдлага (Workshop)</h1>
-          <p className="text-xs text-slate-400 mt-0.5">Харилцагч, үйлчилгээ болон хариуцсан ажилтны хуваарилалт</p>
+          <h1 className="text-lg sm:text-2xl font-black text-slate-900">Ажлын удирдлага</h1>
+          <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">Харилцагч, үйлчилгээ болон хариуцсан ажилтны хуваарилалт</p>
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-2xl text-xs font-bold transition-all shadow-sm shadow-blue-500/20 cursor-pointer"
+          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl text-xs font-bold transition-all shadow-sm shadow-blue-500/20 cursor-pointer"
         >
           <Plus size={16} /> Шинэ ажил бүртгэх
         </button>
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3 bg-white px-4 py-2.5 rounded-2xl border border-slate-100 shadow-2xs sm:w-80">
-          <Search size={18} className="text-slate-400 shrink-0" />
+      {/* Search & View options */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2 bg-white px-3.5 py-2 rounded-xl sm:rounded-2xl border border-slate-100 shadow-2xs w-full sm:w-80">
+          <Search size={16} className="text-slate-400 shrink-0" />
           <input 
             type="text"
-            placeholder="Ажил, харилцагч эсвэл ажилтнаар хайх..."
+            placeholder="Хайх (ажил, харилцагч...)"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full text-xs font-bold text-slate-800 bg-transparent outline-none"
           />
         </div>
 
-        <div className="flex items-center gap-1 bg-white p-1.5 rounded-2xl border border-slate-100 shadow-2xs">
+        <div className="flex items-center justify-end gap-1 bg-white p-1 rounded-xl sm:rounded-2xl border border-slate-100 shadow-2xs">
           <button
             onClick={() => setViewMode('list')}
-            className={`p-2 rounded-xl transition-all cursor-pointer ${
+            className={`p-2 rounded-lg sm:rounded-xl transition-all cursor-pointer ${
               viewMode === 'list' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50'
             }`}
           >
@@ -181,7 +182,7 @@ export default function WorkshopPage() {
           </button>
           <button
             onClick={() => setViewMode('grid')}
-            className={`p-2 rounded-xl transition-all cursor-pointer ${
+            className={`p-2 rounded-lg sm:rounded-xl transition-all cursor-pointer ${
               viewMode === 'grid' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50'
             }`}
           >
@@ -193,59 +194,64 @@ export default function WorkshopPage() {
       {loading ? (
         <Loading />
       ) : filteredWorks.length === 0 ? (
-        <div className="bg-white p-12 rounded-3xl border border-slate-100 text-center space-y-3">
-          <Wrench size={40} className="mx-auto text-slate-300" />
-          <p className="text-sm font-bold text-slate-700">Ажил олдсонгүй</p>
-          <p className="text-xs text-slate-400">Шинэ ажил бүртгэж эхлэнэ үү.</p>
+        <div className="bg-white p-8 sm:p-12 rounded-2xl sm:rounded-3xl border border-slate-100 text-center space-y-3">
+          <Wrench size={36} className="mx-auto text-slate-300" />
+          <p className="text-xs sm:text-sm font-bold text-slate-700">Ажил олдсонгүй</p>
+          <p className="text-[11px] sm:text-xs text-slate-400">Шинэ ажил бүртгэж эхлэнэ үү.</p>
         </div>
       ) : viewMode === 'list' ? (
-        <div className="bg-white rounded-3xl border border-slate-100 shadow-2xs overflow-hidden">
+        <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-100 shadow-2xs overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse min-w-175">
               <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/50 text-[11px] font-black uppercase text-slate-400 tracking-wider">
-                  <th className="py-4 px-6">Ажил / Гарчиг</th>
-                  <th className="py-4 px-6">Харилцагч</th>
-                  <th className="py-4 px-6">Үйлчилгээ</th>
-                  <th className="py-4 px-6">Хариуцсан ажилтан</th>
-                  <th className="py-4 px-6">Үнэ</th>
-                  <th className="py-4 px-6">Төлөв</th>
+                <tr className="border-b border-slate-100 bg-slate-50/50 text-[10px] sm:text-[11px] font-black uppercase text-slate-400 tracking-wider">
+                  <th className="py-3 px-4 sm:px-6">Ажил / Гарчиг</th>
+                  <th className="py-3 px-4 sm:px-6">Харилцагч</th>
+                  <th className="py-3 px-4 sm:px-6">Үйлчилгээ</th>
+                  <th className="py-3 px-4 sm:px-6">Ажилтан</th>
+                  <th className="py-3 px-4 sm:px-6">Үнэ</th>
+                  <th className="py-3 px-4 sm:px-6">Төлөв</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-600">
                 {filteredWorks.map((work) => (
-                  <tr key={work.work_id} className="hover:bg-slate-50/85 transition-colors">
-                    <td className="py-4 px-6">
+                  <tr 
+                    key={work.work_id} 
+                    onClick={() => router.push(`/dashboard/workshop/${work.work_id}`)}
+                    className="hover:bg-blue-50/50 transition-colors cursor-pointer"
+                  >
+                    <td className="py-3 px-4 sm:py-4 sm:px-6">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-black shrink-0">
-                          <Wrench size={18} />
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-black shrink-0">
+                          <Wrench size={16} />
                         </div>
                         <div>
                           <span className="font-bold text-slate-900 block">{work.title}</span>
-                          <span className="text-[10px] text-slate-400 truncate max-w-xs block">{work.description || 'Тайлбар байхгүй'}</span>
+                          <span className="text-[10px] text-slate-400 truncate max-w-50 block">{work.description || 'Тайлбар байхгүй'}</span>
                         </div>
                       </div>
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 px-4 sm:py-4 sm:px-6">
                       <div className="flex items-center gap-1.5 text-slate-700 font-bold">
-                        <User size={14} className="text-slate-400" /> {work.customer_name || 'Харилцагч байхгүй'}
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-normal">
+                        <User size={13} className="text-slate-400 shrink-0" /> 
+                        <span className="truncate max-w-30">{work.customer_name || 'Харилцагч байхгүй'}</span>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-normal shrink-0">
                           {work.customer_type === 'company' ? 'Компани' : 'Хувь хүн'}
                         </span>
                       </div>
                     </td>
-                    <td className="py-4 px-6">
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600">
-                        <Briefcase size={12} /> {work.service_name || 'Үйлчилгээ сонгоогүй'}
+                    <td className="py-3 px-4 sm:py-4 sm:px-6">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg bg-slate-100 text-slate-600 truncate max-w-32.5">
+                        <Briefcase size={11} className="shrink-0" /> {work.service_name || 'Үйлчилгээ сонгоогүй'}
                       </span>
                     </td>
-                    <td className="py-4 px-6 font-medium text-slate-700">
+                    <td className="py-3 px-4 sm:py-4 sm:px-6 font-medium text-slate-700 truncate max-w-27.5">
                       {work.employee_name?.trim() ? work.employee_name : 'Томилогдоогүй'}
                     </td>
-                    <td className="py-4 px-6 font-bold text-slate-900">
+                    <td className="py-3 px-4 sm:py-4 sm:px-6 font-bold text-slate-900 whitespace-nowrap">
                       {work.price ? `${Number(work.price).toLocaleString()} ₮` : '0 ₮'}
                     </td>
-                    <td className="py-4 px-6">
+                    <td className="py-3 px-4 sm:py-4 sm:px-6 whitespace-nowrap">
                       {getStatusBadge(work.status)}
                     </td>
                   </tr>
@@ -255,16 +261,20 @@ export default function WorkshopPage() {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {filteredWorks.map((work) => (
-            <div key={work.work_id} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-2xs space-y-4 hover:border-blue-200 transition-all">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-black shrink-0">
-                    <Wrench size={20} />
+            <div 
+              key={work.work_id} 
+              onClick={() => router.push(`/dashboard/workshop/${work.work_id}`)}
+              className="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-100 shadow-2xs space-y-3 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-black shrink-0">
+                    <Wrench size={18} />
                   </div>
                   <div>
-                    <h3 className="font-black text-sm text-slate-900">{work.title}</h3>
+                    <h3 className="font-black text-xs sm:text-sm text-slate-900">{work.title}</h3>
                     <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 mt-1">
                       <Briefcase size={10} /> {work.service_name || 'Үйлчилгээ сонгоогүй'}
                     </span>
@@ -275,18 +285,18 @@ export default function WorkshopPage() {
 
               <p className="text-xs text-slate-500 line-clamp-2">{work.description || 'Тайлбар байхгүй'}</p>
 
-              <div className="space-y-2 pt-2 border-t border-slate-100 text-xs">
+              <div className="space-y-1.5 pt-2 border-t border-slate-100 text-xs">
                 <div className="flex items-center justify-between text-slate-600">
-                  <span className="text-slate-400 flex items-center gap-1"><User size={13} /> Харилцагч:</span>
-                  <span className="font-bold">{work.customer_name}</span>
+                  <span className="text-slate-400 flex items-center gap-1"><User size={12} /> Харилцагч:</span>
+                  <span className="font-bold truncate max-w-37.5">{work.customer_name}</span>
                 </div>
                 <div className="flex items-center justify-between text-slate-600">
-                  <span className="text-slate-400 flex items-center gap-1"><ShieldAlert size={13} /> Ажилтан:</span>
-                  <span className="font-semibold">{work.employee_name?.trim() ? work.employee_name : 'Томилогдоогүй'}</span>
+                  <span className="text-slate-400 flex items-center gap-1"><ShieldAlert size={12} /> Ажилтан:</span>
+                  <span className="font-semibold truncate max-w-37.5">{work.employee_name?.trim() ? work.employee_name : 'Томилогдоогүй'}</span>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-3 border-t border-slate-100 text-xs font-bold">
+              <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs font-bold">
                 <span className="text-slate-400">Үнэ:</span>
                 <span className="text-blue-600 text-sm">{work.price ? `${Number(work.price).toLocaleString()} ₮` : '0 ₮'}</span>
               </div>
@@ -297,48 +307,48 @@ export default function WorkshopPage() {
 
       {/* Add Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white max-w-lg w-full rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-              <h3 className="font-black text-base text-slate-900">Шинэ ажил бүртгэх</h3>
-              <button onClick={() => setIsModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 rounded-xl cursor-pointer">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white max-w-lg w-full rounded-2xl sm:rounded-3xl p-5 sm:p-8 space-y-4 sm:space-y-6 shadow-2xl animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-slate-100">
+              <h3 className="font-black text-sm sm:text-base text-slate-900">Шинэ ажил бүртгэх</h3>
+              <button onClick={() => setIsModalOpen(false)} className="p-1.5 sm:p-2 text-slate-400 hover:text-slate-600 rounded-xl cursor-pointer">
                 <X size={18} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-3.5 sm:space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1">Ажлын нэр / Гарчиг *</label>
+                <label className="block text-[11px] sm:text-xs font-bold text-slate-600 mb-1">Ажлын нэр / Гарчиг *</label>
                 <input 
                   type="text"
                   required
                   placeholder="Жишээ: Засварын ажил..."
                   value={formData.title}
                   onChange={(e) => setFormData({...formData, title: e.target.value})}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 outline-none focus:border-blue-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 outline-none focus:border-blue-500"
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1">Харилцагчийн төрөл *</label>
+                  <label className="block text-[11px] sm:text-xs font-bold text-slate-600 mb-1">Харилцагчийн төрөл *</label>
                   <select
                     value={formData.customer_type}
                     onChange={(e) => setFormData({...formData, customer_type: e.target.value as 'individual' | 'company', customer_id: ''})}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 outline-none focus:border-blue-500 bg-white"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 outline-none focus:border-blue-500 bg-white"
                   >
-                    <option value="individual">Хувь хүн (mt_customer)</option>
-                    <option value="company">Компани (mt_customerCompany)</option>
+                    <option value="individual">Хувь хүн</option>
+                    <option value="company">Компани</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1">Харилцагч сонгох *</label>
+                  <label className="block text-[11px] sm:text-xs font-bold text-slate-600 mb-1">Харилцагч сонгох *</label>
                   <select
                     required
                     value={formData.customer_id}
                     onChange={(e) => setFormData({...formData, customer_id: e.target.value})}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 outline-none focus:border-blue-500 bg-white"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 outline-none focus:border-blue-500 bg-white"
                   >
                     <option value="">-- Сонгох --</option>
                     {formData.customer_type === 'individual' ? (
@@ -358,13 +368,13 @@ export default function WorkshopPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1">Үйлчилгээ сонгох (mt_services)</label>
+                  <label className="block text-[11px] sm:text-xs font-bold text-slate-600 mb-1">Үйлчилгээ сонгох</label>
                   <select
                     value={formData.service_id}
                     onChange={handleServiceChange}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 outline-none focus:border-blue-500 bg-white"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 outline-none focus:border-blue-500 bg-white"
                   >
                     <option value="">-- Үйлчилгээ сонгох --</option>
                     {options.services.map(ser => (
@@ -376,67 +386,67 @@ export default function WorkshopPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1">Хариуцсан ажилтан (mt_user)</label>
+                  <label className="block text-[11px] sm:text-xs font-bold text-slate-600 mb-1">Хариуцсан ажилтан</label>
                   <select
                     value={formData.assigned_employee}
                     onChange={(e) => setFormData({...formData, assigned_employee: e.target.value})}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 outline-none focus:border-blue-500 bg-white"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 outline-none focus:border-blue-500 bg-white"
                   >
                     <option value="">-- Ажилтан сонгох --</option>
                     {options.employees.map(emp => (
                       <option key={emp.user_id} value={emp.user_id}>
-                        {emp.last_name} {emp.first_name} ({emp.email})
+                        {emp.last_name} {emp.first_name}
                       </option>
                     ))}
                   </select>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1">Үнэ (₮)</label>
+                  <label className="block text-[11px] sm:text-xs font-bold text-slate-600 mb-1">Үнэ (₮)</label>
                   <input 
                     type="number"
                     placeholder="0"
                     value={formData.price}
                     onChange={(e) => setFormData({...formData, price: e.target.value})}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 outline-none focus:border-blue-500"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 outline-none focus:border-blue-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1">Дуусах хугацаа</label>
+                  <label className="block text-[11px] sm:text-xs font-bold text-slate-600 mb-1">Дуусах хугацаа</label>
                   <input 
                     type="date"
                     value={formData.due_date}
                     onChange={(e) => setFormData({...formData, due_date: e.target.value})}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 outline-none focus:border-blue-500"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 outline-none focus:border-blue-500"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1">Тайлбар</label>
+                <label className="block text-[11px] sm:text-xs font-bold text-slate-600 mb-1">Тайлбар</label>
                 <textarea 
                   rows={3}
                   placeholder="Ажлын дэлгэрэнгүй тэмдэглэл..."
                   value={formData.description}
                   onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 outline-none focus:border-blue-500 resize-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 outline-none focus:border-blue-500 resize-none"
                 />
               </div>
 
-              <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
+              <div className="pt-3 flex items-center justify-end gap-2.5 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all cursor-pointer"
                 >
                   Цуцлах
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-sm shadow-blue-500/20 cursor-pointer inline-flex items-center gap-1.5 disabled:opacity-50"
+                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-sm shadow-blue-500/20 cursor-pointer inline-flex items-center gap-1.5 disabled:opacity-50"
                 >
                   {saving ? (
                     <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
