@@ -4,7 +4,7 @@ import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Wrench, ArrowLeft, User, Briefcase, 
-  Save, CheckCircle2, Clock, X 
+  Save, CheckCircle2, Clock, X, ShieldAlert 
 } from 'lucide-react';
 import Loading from '@/src/app/components/loading';
 
@@ -47,15 +47,22 @@ export default function WorkDetailPage({ params }: { params: Promise<{ id: strin
       
       if (result.success && result.data) {
         const item = result.data;
+        
+        // Харилцагчийн төрлөөс шалтгаалж ID-г зөв сонгож оноох
+        const currentCustomerId = item.customer_type === 'company' 
+          ? (item.company_customer_id || '') 
+          : (item.customer_id || '');
+
         setFormData({
           title: item.title || '',
           customer_type: item.customer_type || 'individual',
-          customer_id: item.customer_type === 'company' ? (item.company_customer_id || '') : (item.customer_id || ''),
+          customer_id: currentCustomerId,
           service_id: item.service_id ? item.service_id.toString() : '',
-          assigned_employee: item.assigned_employee || '',
-          price: item.price ? item.price.toString() : '',
+          assigned_employee: item.assigned_employee ? item.assigned_employee.toString() : '',
+          price: item.price !== null && item.price !== undefined ? item.price.toString() : '',
           status: item.status || 'pending',
-          priority: item.priority || 'medium',
+          // Priority-г баазаас ирэхэд том/жижиг үсэг ямар ч байсан таардаг болгох
+          priority: item.priority ? item.priority.toLowerCase() : 'medium',
           due_date: item.due_date ? item.due_date.split('T')[0] : '',
           description: item.description || ''
         });
@@ -220,7 +227,7 @@ export default function WorkDetailPage({ params }: { params: Promise<{ id: strin
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <label className="block text-xs font-bold text-slate-600 mb-1">Төлөв</label>
             <select
@@ -232,6 +239,19 @@ export default function WorkDetailPage({ params }: { params: Promise<{ id: strin
               <option value="in_progress">Хийгдэж байна</option>
               <option value="completed">Дууссан</option>
               <option value="cancelled">Цуцлагдсан</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-600 mb-1">Зэрэглэл (Priority)</label>
+            <select
+              value={formData.priority}
+              onChange={(e) => setFormData({...formData, priority: e.target.value})}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 outline-none focus:border-blue-500 bg-white"
+            >
+              <option value="low">Энгийн</option>
+              <option value="medium">Дунд</option>
+              <option value="high">Яаралтай</option>
             </select>
           </div>
 

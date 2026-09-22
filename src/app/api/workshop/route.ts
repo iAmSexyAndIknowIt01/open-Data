@@ -144,7 +144,7 @@ export async function POST(request: Request) {
       description || null,
       price ? Number(price) : 0,
       status || 'pending',
-      priority || 'medium',
+      priority || 'medium', // Зэрэглэл утга
       due_date || null
     ];
 
