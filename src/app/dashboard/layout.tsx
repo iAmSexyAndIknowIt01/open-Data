@@ -16,20 +16,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [settingsDropdownOpen, setSettingsDropdownOpen] = useState(false);
+  const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
+
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const settingsDropdownRef = useRef<HTMLDivElement>(null);
 
   const [userData, setUserData] = useState<UserData | null>(null);
 
+  // Үндсэн цэснээс Ажилчид, Үйлчилгээг хасаж, Тохиргоог submenu-тэй болгож байна
   const navItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Удирдлага' },
     { href: '/dashboard/data', icon: Database, label: 'Өгөгдөл' },
-    { href: '/dashboard/my-anket', icon: FileText, label: 'Анкет' },
-    { href: '/dashboard/employees', icon: Users, label: 'Ажилчид' },
     { href: '/dashboard/customers', icon: UserCheck, label: 'Харилцагч' },
-    { href: '/dashboard/services', icon: Briefcase, label: 'Үйлчилгээ' },
-    { href: '/dashboard/workshop', icon: Wrench, label: 'Ажил' }, // Ажил цэсийг workshop замтай нь нэмэв
+    { href: '/dashboard/workshop', icon: Wrench, label: 'Ажил' },
     { href: '/dashboard/analytics', icon: BarChart3, label: 'Аналитик' },
-    { href: '/dashboard/settings', icon: Settings, label: 'Тохиргоо' },
+  ];
+  
+  // Тохиргооны доошоо унадаг дэд цэсүүд
+  const settingsSubItems = [
+    { href: '/dashboard/employees', icon: Users, label: 'Ажилчид' },
+    { href: '/dashboard/services', icon: Briefcase, label: 'Үйлчилгээ' },
+    { href: '/dashboard/my-anket', icon: FileText, label: 'Анкет' },
+    { href: '/dashboard/settings', icon: Settings, label: 'Ерөнхий тохиргоо' },
   ];
 
   // Хэрэглэгчийн мэдээллийг API-аас татах
@@ -48,11 +57,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     fetchUserData();
   }, []);
 
-  // Dropdown цэснээс гадна дархад хаагдах логик
+  // Цэснээс гадна дархад хаагдах логик
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setDropdownOpen(false);
+      }
+      if (settingsDropdownRef.current && !settingsDropdownRef.current.contains(event.target as Node)) {
+        setSettingsDropdownOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -79,6 +91,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const first = userData.first_name || '';
     return `${last} ${first}`.trim() || 'Хэрэглэгч';
   };
+
+  // Тухайн дэд цэс идэвхтэй эсэхийг шалгах
+  const isSettingsActive = pathname === '/dashboard/employees' || pathname === '/dashboard/services' || pathname === '/dashboard/settings';
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -112,6 +127,42 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 {item.label}
               </Link>
             ))}
+
+            {/* Тохиргоо болон Submenu */}
+            <div className="relative" ref={settingsDropdownRef}>
+              <button
+                onClick={() => setSettingsDropdownOpen(!settingsDropdownOpen)}
+                className={`flex items-center gap-2 px-3 lg:px-4 py-2 rounded-xl text-sm font-bold transition-all cursor-pointer ${
+                  isSettingsActive 
+                    ? 'bg-blue-50 text-blue-600' 
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                <Settings size={18} />
+                Тохиргоо
+                <ChevronDown size={14} className={`transition-transform ${settingsDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {settingsDropdownOpen && (
+                <div className="absolute left-0 mt-2 w-48 bg-white border border-slate-200 rounded-2xl shadow-xl py-2 z-50 animate-in fade-in slide-in-from-top-2">
+                  {settingsSubItems.map((sub) => (
+                    <Link
+                      key={sub.href}
+                      href={sub.href}
+                      onClick={() => setSettingsDropdownOpen(false)}
+                      className={`flex items-center gap-2.5 px-4 py-2.5 text-xs font-bold transition-colors ${
+                        pathname === sub.href
+                          ? 'bg-blue-50 text-blue-600'
+                          : 'text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      <sub.icon size={16} className="text-slate-500" />
+                      {sub.label}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
           </nav>
         </div>
 
@@ -159,8 +210,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           )}
         </div>
 
+        {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden absolute top-full left-0 w-full bg-white border-b border-slate-200 px-4 py-3 space-y-1 shadow-xl z-50 animate-in fade-in slide-in-from-top-2">
+          <div className="md:hidden absolute top-full left-0 w-full bg-white border-b border-slate-200 px-4 py-3 space-y-1 shadow-xl z-50 animate-in fade-in slide-in-from-top-2 max-h-[80vh] overflow-y-auto">
             {navItems.map((item) => (
               <Link
                 key={item.href}
@@ -176,6 +228,39 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 {item.label}
               </Link>
             ))}
+
+            {/* Mobile Settings Accordion */}
+            <div>
+              <button
+                onClick={() => setMobileSettingsOpen(!mobileSettingsOpen)}
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-bold transition-all ${
+                  isSettingsActive ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Settings size={18} /> Тохиргоо
+                </div>
+                <ChevronDown size={16} className={`transition-transform ${mobileSettingsOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {mobileSettingsOpen && (
+                <div className="pl-6 py-1 space-y-1 border-l-2 border-slate-100 ml-4 my-1">
+                  {settingsSubItems.map((sub) => (
+                    <Link
+                      key={sub.href}
+                      href={sub.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                        pathname === sub.href ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      <sub.icon size={16} />
+                      {sub.label}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </header>
