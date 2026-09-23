@@ -4,6 +4,7 @@ import { useEffect, useState, use } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Building2, User, Mail, Phone, MapPin, ArrowLeft, Calendar, ShieldCheck, FileText, RefreshCw, Edit3, Save, X } from 'lucide-react';
 import Loading from '@/src/app/components/loading';
+import CommonModal from '@/src/app/components/CommonModal';
 
 interface CustomerDetail {
   customer_id: string;
@@ -36,6 +37,20 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
   const [formData, setFormData] = useState<Partial<CustomerDetail>>({});
   const [saving, setSaving] = useState(false);
 
+  // Modal төлөвүүд
+  const [modalState, setModalState] = useState<{
+    isOpen: boolean;
+    type: 'success' | 'error';
+    title: string;
+    message: string;
+    onConfirm?: () => void;
+  }>({
+    isOpen: false,
+    type: 'success',
+    title: '',
+    message: '',
+  });
+
   useEffect(() => {
     const fetchCustomerDetail = async () => {
       try {
@@ -46,10 +61,21 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
           setCustomer(result.data);
           setFormData(result.data); // Формын өгөгдлийг оноох
         } else {
-          alert(result.error || 'Мэдээлэл олдсонгүй');
+          setModalState({
+            isOpen: true,
+            type: 'error',
+            title: 'Алдаа гарлаа',
+            message: result.error || 'Мэдээлэл олдсонгүй',
+          });
         }
       } catch (err) {
         console.error('Failed to fetch customer detail:', err);
+        setModalState({
+          isOpen: true,
+          type: 'error',
+          title: 'Холболтын алдаа',
+          message: 'Мэдээлэл авахад алдаа гарлаа.',
+        });
       } finally {
         setLoading(false);
       }
@@ -74,16 +100,31 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
       const result = await res.json();
 
       if (result.success) {
-        alert('Мэдээлэл амжилттай шинэчлэгдлээ.');
         setCustomer(result.data);
         setIsEditing(false);
         router.refresh();
+        setModalState({
+          isOpen: true,
+          type: 'success',
+          title: 'Амжилттай',
+          message: 'Харилцагчийн мэдээлэл амжилттай шинэчлэгдлээ.',
+        });
       } else {
-        alert(result.error || 'Хадгалахад алдаа гарлаа.');
+        setModalState({
+          isOpen: true,
+          type: 'error',
+          title: 'Хадгалж чадсангүй',
+          message: result.error || 'Хадгалахад алдаа гарлаа.',
+        });
       }
     } catch (err) {
       console.error('Failed to update customer:', err);
-      alert('Холболтын алдаа гарлаа.');
+      setModalState({
+        isOpen: true,
+        type: 'error',
+        title: 'Системийн алдаа',
+        message: 'Холболтын алдаа гарлаа.',
+      });
     } finally {
       setSaving(false);
     }
@@ -108,6 +149,16 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
 
   return (
     <div className="space-y-6 pb-20 max-w-4xl mx-auto">
+      {/* Ерөнхий модал ашиглалт */}
+      <CommonModal
+        isOpen={modalState.isOpen}
+        type={modalState.type}
+        title={modalState.title}
+        message={modalState.message}
+        onClose={() => setModalState((prev) => ({ ...prev, isOpen: false }))}
+        onConfirm={modalState.onConfirm}
+      />
+
       <div className="flex items-center justify-between">
         <button 
           onClick={() => router.back()}
