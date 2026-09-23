@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   Building2, User, Plus, Search, Mail, Phone, MapPin, 
-  X, CheckCircle2, LayoutList, LayoutGrid 
+  X, CheckCircle2, LayoutList, LayoutGrid, FileText 
 } from 'lucide-react';
 import Loading from '@/src/app/components/loading';
 
@@ -18,27 +19,29 @@ interface Customer {
   address: string | null;
   tax_number: string | null;
   status: string | null;
+  male?: string | null; //
 }
 
 export default function CustomersPage() {
+  const router = useRouter();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'company' | 'individual'>('all');
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list'); // Default list
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Form state
   const [formData, setFormData] = useState({
     customer_type: 'company' as 'company' | 'individual',
-    name: '',         // Компанийн нэр
-    first_name: '',    // Хувь хүний нэр
-    last_name: '',     // Хувь хүний овог
+    name: '',         
+    first_name: '',   
+    last_name: '',    
     email: '',
     phone: '',
     address: '',
-    tax_number: ''     // Компанийн ТТД
+    tax_number: '',
+    male: 'Эрэгтэй'
   });
 
   const fetchCustomers = async () => {
@@ -57,7 +60,6 @@ export default function CustomersPage() {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchCustomers();
   }, []);
 
@@ -81,7 +83,8 @@ export default function CustomersPage() {
           email: '', 
           phone: '', 
           address: '', 
-          tax_number: '' 
+          tax_number: '',
+          male: 'Эрэгтэй'
         });
         fetchCustomers();
       } else {
@@ -160,7 +163,6 @@ export default function CustomersPage() {
             />
           </div>
 
-          {/* View mode toggle */}
           <div className="flex items-center gap-1 bg-white p-1.5 rounded-2xl border border-slate-100 shadow-2xs">
             <button
               onClick={() => setViewMode('list')}
@@ -193,7 +195,6 @@ export default function CustomersPage() {
           <p className="text-xs text-slate-400">Шинэ харилцагч нэмж бүртгэнэ үү.</p>
         </div>
       ) : viewMode === 'list' ? (
-        // TABLE VIEW (Default List)
         <div className="bg-white rounded-3xl border border-slate-100 shadow-2xs overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
@@ -213,7 +214,11 @@ export default function CustomersPage() {
                     : `${customer.last_name || ''} ${customer.first_name || ''}`.trim();
 
                   return (
-                    <tr key={customer.customer_id} className="hover:bg-slate-50/80 transition-colors">
+                    <tr 
+                      key={customer.customer_id} 
+                      onClick={() => router.push(`/dashboard/customers/${customer.customer_id}?type=${customer.customer_type}`)}
+                      className="hover:bg-slate-50/80 transition-colors cursor-pointer"
+                    >
                       <td className="py-4 px-6">
                         <div className="flex items-center gap-3">
                           <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black shrink-0 ${
@@ -261,7 +266,6 @@ export default function CustomersPage() {
           </div>
         </div>
       ) : (
-        // GRID VIEW (Cards)
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredCustomers.map((customer) => {
             const displayName = customer.customer_type === 'company' 
@@ -269,7 +273,11 @@ export default function CustomersPage() {
               : `${customer.last_name || ''} ${customer.first_name || ''}`.trim();
 
             return (
-              <div key={customer.customer_id} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-2xs space-y-4 hover:border-blue-200 transition-all">
+              <div 
+                key={customer.customer_id} 
+                onClick={() => router.push(`/dashboard/customers/${customer.customer_id}?type=${customer.customer_type}`)}
+                className="bg-white p-6 rounded-3xl border border-slate-100 shadow-2xs space-y-4 hover:border-blue-200 transition-all cursor-pointer"
+              >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-base shrink-0 ${
@@ -309,42 +317,45 @@ export default function CustomersPage() {
         </div>
       )}
 
-      {/* Add Modal */}
+      {/* Шинэ харилцагч нэмэх модал цонх */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white max-w-lg w-full rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-              <h3 className="font-black text-base text-slate-900">Шинэ харилцагч бүртгэх</h3>
-              <button onClick={() => setIsModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 rounded-xl cursor-pointer">
-                <X size={18} />
+          <div className="bg-white rounded-3xl p-8 max-w-lg w-full shadow-xl space-y-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <h2 className="text-lg font-black text-slate-900">Шинэ харилцагч нэмэх</h2>
+              <button 
+                onClick={() => setIsModalOpen(false)}
+                className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-50 transition-all cursor-pointer"
+              >
+                <X size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4 text-xs">
               <div>
-                <label className="block text-xs font-bold text-slate-600 mb-2">Харилцагчийн төрөл</label>
-                <div className="grid grid-cols-2 gap-3">
+                <label className="block font-bold text-slate-700 mb-1.5">Харилцагчийн төрөл</label>
+                <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    onClick={() => setFormData({...formData, customer_type: 'company'})}
-                    className={`flex items-center justify-center gap-2 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                    onClick={() => setFormData({ ...formData, customer_type: 'company' })}
+                    className={`py-2.5 rounded-xl font-bold border transition-all cursor-pointer ${
                       formData.customer_type === 'company' 
-                        ? 'border-blue-600 bg-blue-50/50 text-blue-600' 
-                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                        ? 'bg-blue-50 border-blue-200 text-blue-600' 
+                        : 'border-slate-100 text-slate-600 hover:bg-slate-50'
                     }`}
                   >
-                    <Building2 size={16} /> Байгууллага (Company)
+                    Байгууллага
                   </button>
                   <button
                     type="button"
-                    onClick={() => setFormData({...formData, customer_type: 'individual'})}
-                    className={`flex items-center justify-center gap-2 p-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer ${
+                    onClick={() => setFormData({ ...formData, customer_type: 'individual' })}
+                    className={`py-2.5 rounded-xl font-bold border transition-all cursor-pointer ${
                       formData.customer_type === 'individual' 
-                        ? 'border-blue-600 bg-blue-50/50 text-blue-600' 
-                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                        ? 'bg-blue-50 border-blue-200 text-blue-600' 
+                        : 'border-slate-100 text-slate-600 hover:bg-slate-50'
                     }`}
                   >
-                    <User size={16} /> Хувь хүн (Customer)
+                    Хувь хүн
                   </button>
                 </div>
               </div>
@@ -352,106 +363,114 @@ export default function CustomersPage() {
               {formData.customer_type === 'company' ? (
                 <>
                   <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1">Байгууллагын нэр *</label>
+                    <label className="block font-bold text-slate-700 mb-1">Компанийн нэр</label>
                     <input 
-                      type="text"
+                      type="text" 
                       required
-                      placeholder="Жишээ: Компани ХХК"
                       value={formData.name}
-                      onChange={(e) => setFormData({...formData, name: e.target.value})}
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 outline-none focus:border-blue-500"
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="Жишээ: Компани ХХК"
+                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-blue-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1">Регистр / ТТД *</label>
+                    <label className="block font-bold text-slate-700 mb-1">Татвар төлөгчийн дугаар (ТТД)</label>
                     <input 
-                      type="text"
+                      type="text" 
                       required
-                      placeholder="Компанийн татварын дугаар"
                       value={formData.tax_number}
-                      onChange={(e) => setFormData({...formData, tax_number: e.target.value})}
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 outline-none focus:border-blue-500"
+                      onChange={(e) => setFormData({ ...formData, tax_number: e.target.value })}
+                      placeholder="Жишээ: 1234567"
+                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-blue-500"
                     />
                   </div>
                 </>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1">Овог</label>
-                    <input 
-                      type="text"
-                      placeholder="Жишээ: Дорж"
-                      value={formData.last_name}
-                      onChange={(e) => setFormData({...formData, last_name: e.target.value})}
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 outline-none focus:border-blue-500"
-                    />
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">Овог</label>
+                      <input 
+                        type="text" 
+                        value={formData.last_name}
+                        onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                        placeholder="Овог"
+                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-slate-700 mb-1">Нэр</label>
+                      <input 
+                        type="text" 
+                        required
+                        value={formData.first_name}
+                        onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                        placeholder="Нэр"
+                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-blue-500"
+                      />
+                    </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-600 mb-1">Нэр *</label>
-                    <input 
-                      type="text"
-                      required
-                      placeholder="Жишээ: Бат"
-                      value={formData.first_name}
-                      onChange={(e) => setFormData({...formData, first_name: e.target.value})}
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 outline-none focus:border-blue-500"
-                    />
+                    <label className="block font-bold text-slate-700 mb-1">Хүйс</label>
+                    <select
+                      value={formData.male}
+                      onChange={(e) => setFormData({ ...formData, male: e.target.value })}
+                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-blue-500"
+                    >
+                      <option value="Эрэгтэй">Эрэгтэй</option>
+                      <option value="Эмэгтэй">Эмэгтэй</option>
+                    </select>
                   </div>
-                </div>
+                </>
               )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1">Имэйл хаяг</label>
-                  <input 
-                    type="email"
-                    placeholder="example@mail.com"
-                    value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 outline-none focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-1">Утасны дугаар</label>
-                  <input 
-                    type="text"
-                    placeholder="99112233"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 outline-none focus:border-blue-500"
-                  />
-                </div>
-              </div>
-
               <div>
-                <label className="block text-xs font-bold text-slate-600 mb-1">Хаяг</label>
-                <textarea 
-                  rows={2}
-                  placeholder="Байршил, дүүрэг, хороо..."
-                  value={formData.address}
-                  onChange={(e) => setFormData({...formData, address: e.target.value})}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 outline-none focus:border-blue-500 resize-none"
+                <label className="block font-bold text-slate-700 mb-1">Имэйл хаяг</label>
+                <input 
+                  type="email" 
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="example@mail.com"
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-blue-500"
                 />
               </div>
 
-              <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Утасны дугаар</label>
+                <input 
+                  type="text" 
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="99112233"
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Хаяг байршил</label>
+                <textarea 
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  placeholder="Гэрийн эсвэл албан байгууллагын хаяг"
+                  rows={2}
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 outline-none focus:border-blue-500 resize-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-100 transition-all cursor-pointer"
                 >
-                  Цуцлах
+                  Болих
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-sm shadow-blue-500/20 cursor-pointer inline-flex items-center gap-1.5 disabled:opacity-50"
+                  className="px-6 py-2.5 rounded-xl font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition-all cursor-pointer disabled:opacity-50"
                 >
-                  {saving ? (
-                    <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <Plus size={16} />
-                  )} Хадгалах
+                  {saving ? 'Хадгалж байна...' : 'Хадгалах'}
                 </button>
               </div>
             </form>

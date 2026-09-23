@@ -30,7 +30,8 @@ export async function GET(request: Request) {
           last_name, 
           email, 
           phone, 
-          address, 
+          address,
+          male,
           status, 
           create_date, 
           'individual' as customer_type 
@@ -75,6 +76,7 @@ export async function GET(request: Request) {
 }
 
 // POST: Харилцагчийн төрлөөс хамааран mt_customer эсвэл mt_customerCompany рүү хадгалах
+// POST: Харилцагчийн төрлөөс хамааран mt_customer эсвэл mt_customerCompany рүү хадгалах
 export async function POST(request: Request) {
   try {
     const cookieStore = cookies();
@@ -88,7 +90,9 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { customer_type, name, first_name, last_name, email, phone, address, tax_number } = body;
+    
+    // 1. Энд male хувьсагчийг нэмж салгаж авна
+    const { customer_type, name, first_name, last_name, email, phone, address, tax_number, male } = body;
 
     if (customer_type === 'individual') {
       // Хувь хүн бол mt_customer хүснэгт рүү хадгална
@@ -99,15 +103,25 @@ export async function POST(request: Request) {
         );
       }
 
+      // 2. INSERT хүснэгтийн багана болон VALUES дээр male ($7) нэмнэ
       const insertIndividualQuery = `
-        INSERT INTO mt_customer (company_id, first_name, last_name, email, phone, address) 
-        VALUES ($1, $2, $3, $4, $5, $6) 
+        INSERT INTO mt_customer (company_id, first_name, last_name, email, phone, address, male) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7) 
         RETURNING *
       `;
-      await pool.query(insertIndividualQuery, [companyId, first_name, last_name, email, phone, address]);
+      
+      // 3. Массив дотор male утгыг ($7-д) дамжуулна
+      await pool.query(insertIndividualQuery, [
+        companyId, 
+        first_name, 
+        last_name, 
+        email, 
+        phone, 
+        address, 
+        male || 'Эрэгтэй' // Хэрэв хоосон байвал 'Эрэгтэй' гэсэн default утга авна
+      ]);
 
     } else if (customer_type === 'company') {
-      // Компани бол mt_customerCompany хүснэгт рүү хадгална
       if (!name || !tax_number) {
         return NextResponse.json(
           { success: false, error: 'Компанийн нэр болон регистр / татварын дугаарыг оруулна уу.' },
