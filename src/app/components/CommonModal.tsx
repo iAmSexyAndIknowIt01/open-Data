@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { CheckCircle2, AlertCircle, X } from 'lucide-react';
 
 interface CommonModalProps {
@@ -22,17 +23,37 @@ export default function CommonModal({
   onConfirm,
   confirmText = 'Ойлголоо',
 }: CommonModalProps) {
-  if (!isOpen) return null;
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Модал нээгдэх үед арын background scroll хийгдэхгүй болгох
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
+  if (!isOpen || !mounted) return null;
 
   const isSuccess = type === 'success';
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs px-4 animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-xl border border-slate-100 text-center space-y-4 relative animate-in zoom-in-95 duration-200">
+  // createPortal ашиглан body дээр шууд байрлуулж, fixed inset-0 ашиглан дэлгэцийг 100% бүрхэнэ
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-md px-4 animate-in fade-in duration-200">
+      <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl border border-slate-100 text-center space-y-4 relative animate-in zoom-in-95 duration-200">
         {/* Хаах товч */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1.5 rounded-full hover:bg-slate-50 transition-colors"
+          className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1.5 rounded-full hover:bg-slate-50 transition-colors cursor-pointer"
         >
           <X size={18} />
         </button>
@@ -69,6 +90,7 @@ export default function CommonModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
