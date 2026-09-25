@@ -3,11 +3,11 @@ import { ArrowRight, Sparkles } from 'lucide-react';
 
 export default function FooterCTA() {
   return (
-    <section className="py-28 bg-white border-t border-blue-100/60 w-full relative overflow-hidden">
+    <section className="py-28 bg-white dark:bg-slate-950 border-t border-blue-100/60 dark:border-slate-800 w-full relative overflow-hidden transition-colors duration-300">
       
-      {/* Blueprint Grid Pattern (Цэнхэр зураасан торлог) */}
+      {/* Blueprint Grid Pattern */}
       <div 
-        className="absolute inset-0 opacity-[0.35] pointer-events-none -z-10"
+        className="absolute inset-0 opacity-[0.35] dark:opacity-[0.08] pointer-events-none -z-10"
         style={{
           backgroundImage: `
             linear-gradient(to right, #bae6fd 1px, transparent 1px),
@@ -21,11 +21,11 @@ export default function FooterCTA() {
       />
 
       {/* Decorative soft glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-blue-100/50 blur-[120px] rounded-full pointer-events-none -z-10" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-blue-100/50 dark:bg-blue-900/10 blur-[120px] rounded-full pointer-events-none -z-10" />
 
       <div className="max-w-5xl mx-auto px-6 relative z-10">
         
-        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-blue-950 text-white rounded-3xl p-10 sm:p-16 text-center relative overflow-hidden shadow-2xl shadow-blue-900/20 border border-slate-800">
+        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-blue-950 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900 text-white rounded-3xl p-10 sm:p-16 text-center relative overflow-hidden shadow-2xl shadow-blue-900/20 border border-slate-800 dark:border-slate-800">
           
           {/* Background decorative circle */}
           <div className="absolute top-0 right-0 w-72 h-72 bg-blue-600/20 rounded-bl-full blur-2xl pointer-events-none" />

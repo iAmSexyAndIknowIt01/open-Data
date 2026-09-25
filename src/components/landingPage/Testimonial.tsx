@@ -1,8 +1,8 @@
 export default function Testimonial() {
   return (
-    <section id="testimonials" className="py-28 bg-gradient-to-br from-blue-600 via-blue-700 to-sky-700 text-white relative overflow-hidden w-full">
+    <section id="testimonials" className="py-28 bg-gradient-to-br from-blue-600 via-blue-700 to-sky-700 dark:from-blue-950 dark:via-slate-900 dark:to-blue-950 text-white relative overflow-hidden w-full transition-colors duration-300">
       
-      {/* Blueprint Grid Pattern (Цайвар цэнхэр торлог давхарга) */}
+      {/* Blueprint Grid Pattern */}
       <div 
         className="absolute inset-0 opacity-[0.15] pointer-events-none -z-10"
         style={{
@@ -24,7 +24,7 @@ export default function Testimonial() {
         </div>
 
         <blockquote className="text-xl sm:text-3xl font-medium leading-relaxed italic mb-10 text-blue-50">
-          "Өмнө нь манайх дэвтэр дээр үйлчлүүлэгчдийнхээ нэрийг бичдэг байсан ч хэрэг болох үед олдохгүй хоцрох тоо томшгүй олон байсан. Open Data системд шилжсэнээр 7-р сарын оочер үүсдэг асуудлаа 5-р сараас эхлэн захиалга аваад амархан зохицууллаа."
+          &quot;Өмнө нь манайх дэвтэр дээр үйлчлүүлэгчдийнхээ нэрийг бичдэг байсан ч хэрэг болох үед олдохгүй хоцрох тоо томшгүй олон байсан. Open Data системд шилжсэнээр 7-р сарын оочер үүсдэг асуудлаа 5-р сараас эхлэн захиалга аваад амархан зохицууллаа.&quot;
         </blockquote>
 
         <div className="inline-block bg-white/10 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/15 shadow-inner">

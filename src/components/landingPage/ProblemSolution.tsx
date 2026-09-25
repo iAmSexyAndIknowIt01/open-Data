@@ -2,11 +2,11 @@ import { CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 
 export default function ProblemSolution() {
   return (
-    <section id="problem" className="py-28 bg-[#f8fbff] border-y border-blue-200/60 w-full relative overflow-hidden">
+    <section id="problem" className="py-28 bg-[#f8fbff] dark:bg-slate-900 border-y border-blue-200/60 dark:border-slate-800 w-full relative overflow-hidden transition-colors duration-300">
       
-      {/* Blueprint Grid Pattern (Илүү тод цэнхэр зураасан торлог) */}
+      {/* Blueprint Grid Pattern */}
       <div 
-        className="absolute inset-0 opacity-[0.7] pointer-events-none -z-10"
+        className="absolute inset-0 opacity-[0.7] dark:opacity-[0.1] pointer-events-none -z-10"
         style={{
           backgroundImage: `
             linear-gradient(to right, #bae6fd 1.5px, transparent 1.5px),
@@ -20,19 +20,19 @@ export default function ProblemSolution() {
       />
 
       {/* Decorative soft glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-175 h-87.5 bg-blue-200/50 blur-[140px] rounded-full pointer-events-none -z-10" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-175 h-87.5 bg-blue-200/50 dark:bg-blue-900/20 blur-[140px] rounded-full pointer-events-none -z-10" />
 
       <div className="max-w-7xl mx-auto px-6 relative z-10">
         
         {/* Section Heading */}
         <div className="text-center max-w-3xl mx-auto mb-20">
-          <span className="text-xs font-bold uppercase tracking-widest text-blue-600 bg-blue-100/80 px-3.5 py-1.5 rounded-full border border-blue-200 shadow-sm">
+          <span className="text-xs font-bold uppercase tracking-widest text-blue-600 dark:text-blue-400 bg-blue-100/80 dark:bg-blue-950/60 px-3.5 py-1.5 rounded-full border border-blue-200 dark:border-blue-900 shadow-sm">
             Яагаад зайлшгүй хэрэгтэй вэ?
           </span>
-          <h2 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight mt-4">
-            Өдөр тутмын хүндрэлийг <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-600 to-sky-500">хэрхэн шийдэх вэ?</span>
+          <h2 className="text-3xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tight mt-4">
+            Өдөр тутмын хүндрэлийг <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-sky-500 dark:from-blue-400 dark:to-sky-300">хэрхэн шийдэх вэ?</span>
           </h2>
-          <p className="text-slate-600 mt-4 text-base sm:text-lg leading-relaxed">
+          <p className="text-slate-600 dark:text-slate-300 mt-4 text-base sm:text-lg leading-relaxed">
             Дэвтэр дэвтэр тэмдэглэл болон эмх замбараагүй оочер дарааллыг халж, бизнесийнхээ үр ашгийг бүрэн дээд хэмжээнд хүргээрэй.
           </p>
         </div>
@@ -41,57 +41,57 @@ export default function ProblemSolution() {
         <div className="grid lg:grid-cols-2 gap-8 items-stretch">
           
           {/* АСУУДАЛ: Хуучин арга барил */}
-          <div className="bg-white/95 backdrop-blur-md border border-slate-200/90 p-8 sm:p-10 rounded-3xl shadow-sm relative overflow-hidden flex flex-col justify-between transition-all hover:shadow-md">
-            <div className="absolute top-0 right-0 w-36 h-36 bg-red-100/30 rounded-bl-full pointer-events-none z-0" />
+          <div className="bg-white/95 dark:bg-slate-950/90 backdrop-blur-md border border-slate-200/90 dark:border-slate-800 p-8 sm:p-10 rounded-3xl shadow-sm relative overflow-hidden flex flex-col justify-between transition-all hover:shadow-md">
+            <div className="absolute top-0 right-0 w-36 h-36 bg-red-100/30 dark:bg-red-950/30 rounded-bl-full pointer-events-none z-0" />
             
             <div className="relative z-10">
               <div className="flex items-center gap-2.5 mb-6">
-                <div className="w-10 h-10 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center font-bold">
+                <div className="w-10 h-10 rounded-2xl bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400 flex items-center justify-center font-bold">
                   <AlertTriangle size={20} />
                 </div>
                 <div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-red-600">
+                  <span className="text-xs font-bold uppercase tracking-wider text-red-600 dark:text-red-400">
                     Өнөөгийн нөхцөл байдал
                   </span>
-                  <h3 className="text-xl font-extrabold text-slate-900">Бизнесийн алдаж буй боломж</h3>
+                  <h3 className="text-xl font-extrabold text-slate-900 dark:text-white">Бизнесийн алдаж буй боломж</h3>
                 </div>
               </div>
 
-              <ul className="space-y-5 text-slate-700 mt-6">
-                <li className="flex items-start gap-3.5 bg-slate-50/90 p-4 rounded-2xl border border-slate-200/70">
-                  <XCircle className="text-red-500 shrink-0 mt-0.5" size={22} />
+              <ul className="space-y-5 text-slate-700 dark:text-slate-300 mt-6">
+                <li className="flex items-start gap-3.5 bg-slate-50/90 dark:bg-slate-900/80 p-4 rounded-2xl border border-slate-200/70 dark:border-slate-800">
+                  <XCircle className="text-red-500 dark:text-red-400 shrink-0 mt-0.5" size={22} />
                   <div>
-                    <strong className="block text-slate-900 text-sm font-bold mb-0.5">Дата алдагдах</strong>
-                    <span className="text-xs text-slate-600">Үйлчлүүлэгчийн утасны дугаар цаасан дээр тэмдэглэгдээд хаягдаж, эргэж холбогдох боломжгүй болдог.</span>
+                    <strong className="block text-slate-900 dark:text-white text-sm font-bold mb-0.5">Дата алдагдах</strong>
+                    <span className="text-xs text-slate-600 dark:text-slate-400">Үйлчлүүлэгчийн утасны дугаар цаасан дээр тэмдэглэгдээд хаягдаж, эргэж холбогдох боломжгүй болдог.</span>
                   </div>
                 </li>
 
-                <li className="flex items-start gap-3.5 bg-slate-50/90 p-4 rounded-2xl border border-slate-200/70">
-                  <XCircle className="text-red-500 shrink-0 mt-0.5" size={22} />
+                <li className="flex items-start gap-3.5 bg-slate-50/90 dark:bg-slate-900/80 p-4 rounded-2xl border border-slate-200/70 dark:border-slate-800">
+                  <XCircle className="text-red-500 dark:text-red-400 shrink-0 mt-0.5" size={22} />
                   <div>
-                    <strong className="block text-slate-900 text-sm font-bold mb-0.5">Улирлын ачаалал</strong>
-                    <span className="text-xs text-slate-600">Авто засвар, үсчний оргил саруудад хүн багтахгүй буцаж, дараа нь ажилгүй суудаг тэнцвэргүй урсгал.</span>
+                    <strong className="block text-slate-900 dark:text-white text-sm font-bold mb-0.5">Улирлын ачаалал</strong>
+                    <span className="text-xs text-slate-600 dark:text-slate-400">Авто засвар, үсчний оргил саруудад хүн багтахгүй буцаж, дараа нь ажилгүй суудаг тэнцвэргүй урсгал.</span>
                   </div>
                 </li>
 
-                <li className="flex items-start gap-3.5 bg-slate-50/90 p-4 rounded-2xl border border-slate-200/70">
-                  <XCircle className="text-red-500 shrink-0 mt-0.5" size={22} />
+                <li className="flex items-start gap-3.5 bg-slate-50/90 dark:bg-slate-900/80 p-4 rounded-2xl border border-slate-200/70 dark:border-slate-800">
+                  <XCircle className="text-red-500 dark:text-red-400 shrink-0 mt-0.5" size={22} />
                   <div>
-                    <strong className="block text-slate-900 text-sm font-bold mb-0.5">Эргэх холбоогүй байдал</strong>
-                    <span className="text-xs text-slate-600">Байнгын үйлчлүүлэгчдийнхээ түүхийг мэдэхгүйгээс болж үнэнч хэрэглэгчээ алдах эрсдэлтэй.</span>
+                    <strong className="block text-slate-900 dark:text-white text-sm font-bold mb-0.5">Эргэх холбоогүй байдал</strong>
+                    <span className="text-xs text-slate-600 dark:text-slate-400">Байнгын үйлчлүүлэгчдийнхээ түүхийг мэдэхгүйгээс болж үнэнч хэрэглэгчээ алдах эрсдэлтэй.</span>
                   </div>
                 </li>
               </ul>
             </div>
 
-            <div className="mt-8 pt-4 border-t border-slate-100 text-xs font-semibold text-slate-500 flex items-center justify-between">
+            <div className="mt-8 pt-4 border-t border-slate-100 dark:border-slate-800 text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center justify-between">
               <span>Үр дүн: Цаг хугацаа болон орлого алдах</span>
-              <span className="text-red-600 font-bold">● Эрсдэлтэй</span>
+              <span className="text-red-600 dark:text-red-400 font-bold">● Эрсдэлтэй</span>
             </div>
           </div>
 
           {/* ШИЙДЭЛ: Open Data CRM */}
-          <div className="bg-linear-to-br from-blue-600 via-blue-700 to-sky-700 text-white p-8 sm:p-10 rounded-3xl shadow-2xl shadow-blue-500/20 relative overflow-hidden flex flex-col justify-between transition-all hover:scale-[1.01]">
+          <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-sky-700 text-white p-8 sm:p-10 rounded-3xl shadow-2xl shadow-blue-500/20 relative overflow-hidden flex flex-col justify-between transition-all hover:scale-[1.01]">
             <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-bl-full pointer-events-none" />
             
             <div className="relative z-10">
