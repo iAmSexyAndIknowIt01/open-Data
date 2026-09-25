@@ -15,7 +15,7 @@ export default function Hero() {
             <div className="bg-slate-50/90 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-100 dark:border-slate-800 p-5 sm:p-8 rounded-3xl shadow-xl shadow-slate-200/50 dark:shadow-none relative">
               
               {/* Floating Badge */}
-              <div className="absolute -top-3 -right-2 sm:-top-4 sm:-right-4 bg-gradient-to-r from-blue-600 to-sky-500 text-white text-[10px] sm:text-xs font-bold px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-2xl shadow-lg flex items-center gap-1.5">
+              <div className="absolute -top-3 -right-2 sm:-top-4 sm:-right-4 bg-linear-to-r from-blue-600 to-sky-500 text-white text-[10px] sm:text-xs font-bold px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-2xl shadow-lg flex items-center gap-1.5">
                 <Sparkles size={14} /> Live Preview
               </div>
 
@@ -76,7 +76,7 @@ export default function Hero() {
             </div>
             
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 dark:text-white tracking-tight leading-[1.15]">
-              Үйлчлүүлэгчдийнхээ мэдээллийг алдаж, оочер дарааллаас болж <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-sky-500 dark:from-blue-400 dark:to-sky-300 underline decoration-sky-200 dark:decoration-sky-900">орлогоо бүү алд.</span>
+              Үйлчлүүлэгчдийнхээ мэдээллийг алдаж, оочер дарааллаас болж <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-600 to-sky-500 dark:from-blue-400 dark:to-sky-300 underline decoration-sky-200 dark:decoration-sky-900">орлогоо бүү алд.</span>
             </h1>
             
             <p className="mt-4 sm:mt-6 text-sm sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed font-normal">

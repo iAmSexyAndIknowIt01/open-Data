@@ -21,11 +21,11 @@ export default function FooterCTA() {
       />
 
       {/* Decorative soft glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-blue-100/50 dark:bg-blue-900/10 blur-[120px] rounded-full pointer-events-none -z-10" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-150 h-75 bg-blue-100/50 dark:bg-blue-900/10 blur-[120px] rounded-full pointer-events-none -z-10" />
 
       <div className="max-w-5xl mx-auto px-6 relative z-10">
         
-        <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-blue-950 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900 text-white rounded-3xl p-10 sm:p-16 text-center relative overflow-hidden shadow-2xl shadow-blue-900/20 border border-slate-800 dark:border-slate-800">
+        <div className="bg-linear-to-br from-slate-900 via-slate-800 to-blue-950 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900 text-white rounded-3xl p-10 sm:p-16 text-center relative overflow-hidden shadow-2xl shadow-blue-900/20 border border-slate-800 dark:border-slate-800">
           
           {/* Background decorative circle */}
           <div className="absolute top-0 right-0 w-72 h-72 bg-blue-600/20 rounded-bl-full blur-2xl pointer-events-none" />
@@ -37,7 +37,7 @@ export default function FooterCTA() {
             </span>
 
             <h2 className="text-3xl sm:text-5xl font-black tracking-tight text-white leading-tight">
-              Бизнесээ дараагийн түвшинд <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-blue-300">гаргахад бэлэн үү?</span>
+              Бизнесээ дараагийн түвшинд <span className="text-transparent bg-clip-text bg-linear-to-r from-sky-400 to-blue-300">гаргахад бэлэн үү?</span>
             </h2>
 
             <p className="text-slate-300 mt-4 mb-10 text-base sm:text-lg leading-relaxed">
@@ -46,7 +46,7 @@ export default function FooterCTA() {
 
             <Link 
               href="/register" 
-              className="inline-flex items-center gap-2.5 bg-gradient-to-r from-blue-500 to-sky-500 hover:from-blue-600 hover:to-sky-600 text-white font-extrabold px-8 py-4 rounded-2xl shadow-xl shadow-blue-500/30 transition-all hover:scale-[1.02] hover:-translate-y-0.5"
+              className="inline-flex items-center gap-2.5 bg-linear-to-r from-blue-500 to-sky-500 hover:from-blue-600 hover:to-sky-600 text-white font-extrabold px-8 py-4 rounded-2xl shadow-xl shadow-blue-500/30 transition-all hover:scale-[1.02] hover:-translate-y-0.5"
             >
               Бүртгүүлж эхлэх (Үнэгүй) <ArrowRight size={18} />
             </Link>

@@ -30,7 +30,7 @@ export default function ProblemSolution() {
             Яагаад зайлшгүй хэрэгтэй вэ?
           </span>
           <h2 className="text-3xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tight mt-4">
-            Өдөр тутмын хүндрэлийг <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-sky-500 dark:from-blue-400 dark:to-sky-300">хэрхэн шийдэх вэ?</span>
+            Өдөр тутмын хүндрэлийг <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-600 to-sky-500 dark:from-blue-400 dark:to-sky-300">хэрхэн шийдэх вэ?</span>
           </h2>
           <p className="text-slate-600 dark:text-slate-300 mt-4 text-base sm:text-lg leading-relaxed">
             Дэвтэр дэвтэр тэмдэглэл болон эмх замбараагүй оочер дарааллыг халж, бизнесийнхээ үр ашгийг бүрэн дээд хэмжээнд хүргээрэй.
@@ -91,7 +91,7 @@ export default function ProblemSolution() {
           </div>
 
           {/* ШИЙДЭЛ: Open Data CRM */}
-          <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-sky-700 text-white p-8 sm:p-10 rounded-3xl shadow-2xl shadow-blue-500/20 relative overflow-hidden flex flex-col justify-between transition-all hover:scale-[1.01]">
+          <div className="bg-linear-to-br from-blue-600 via-blue-700 to-sky-700 text-white p-8 sm:p-10 rounded-3xl shadow-2xl shadow-blue-500/20 relative overflow-hidden flex flex-col justify-between transition-all hover:scale-[1.01]">
             <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-bl-full pointer-events-none" />
             
             <div className="relative z-10">

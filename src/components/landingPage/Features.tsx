@@ -20,7 +20,7 @@ export default function Features() {
       />
 
       {/* Decorative soft glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-blue-100/40 dark:bg-blue-900/10 blur-[120px] rounded-full pointer-events-none -z-10" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-150 h-75 bg-blue-100/40 dark:bg-blue-900/10 blur-[120px] rounded-full pointer-events-none -z-10" />
 
       <div className="max-w-7xl mx-auto px-6 relative z-10">
         
@@ -30,7 +30,7 @@ export default function Features() {
             Боломжууд
           </span>
           <h2 className="text-3xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tight mt-4">
-            Үндсэн <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-sky-500 dark:from-blue-400 dark:to-sky-300">боломжууд</span>
+            Үндсэн <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-600 to-sky-500 dark:from-blue-400 dark:to-sky-300">боломжууд</span>
           </h2>
           <p className="text-slate-600 dark:text-slate-300 mt-4 text-base sm:text-lg leading-relaxed">
             ЖДБ эрхлэгчдэд яг хэрэгтэй, илүү дутуу зүйлгүй хөнгөн бөгөөд хурдан шийдэл.

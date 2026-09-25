@@ -1,6 +1,6 @@
 export default function Testimonial() {
   return (
-    <section id="testimonials" className="py-28 bg-gradient-to-br from-blue-600 via-blue-700 to-sky-700 dark:from-blue-950 dark:via-slate-900 dark:to-blue-950 text-white relative overflow-hidden w-full transition-colors duration-300">
+    <section id="testimonials" className="py-28 bg-linear-to-br from-blue-600 via-blue-700 to-sky-700 dark:from-blue-950 dark:via-slate-900 dark:to-blue-950 text-white relative overflow-hidden w-full transition-colors duration-300">
       
       {/* Blueprint Grid Pattern */}
       <div 
@@ -15,7 +15,7 @@ export default function Testimonial() {
       />
 
       {/* Decorative soft glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-sky-400/20 blur-[120px] rounded-full pointer-events-none -z-10" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-150 h-75 bg-sky-400/20 blur-[120px] rounded-full pointer-events-none -z-10" />
 
       <div className="max-w-4xl mx-auto px-6 text-center relative z-10">
         
