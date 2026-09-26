@@ -134,9 +134,9 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
 
   if (!customer) {
     return (
-      <div className="bg-white p-12 rounded-3xl border border-slate-100 text-center space-y-3">
-        <p className="text-sm font-bold text-slate-700">Харилцагчийн мэдээлэл олдсонгүй.</p>
-        <button onClick={() => router.back()} className="text-xs font-bold text-blue-600 hover:underline">
+      <div className="bg-white dark:bg-slate-900 p-12 rounded-3xl border border-slate-100 dark:border-slate-800 text-center space-y-3">
+        <p className="text-sm font-bold text-slate-700 dark:text-slate-200">Харилцагчийн мэдээлэл олдсонгүй.</p>
+        <button onClick={() => router.back()} className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer">
           Буцах
         </button>
       </div>
@@ -148,7 +148,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
     : `${customer.last_name || ''} ${customer.first_name || ''}`.trim();
 
   return (
-    <div className="space-y-6 pb-20 max-w-4xl mx-auto">
+    <div className="space-y-6 pb-20 max-w-4xl mx-auto text-slate-800 dark:text-slate-100">
       {/* Ерөнхий модал ашиглалт */}
       <CommonModal
         isOpen={modalState.isOpen}
@@ -161,14 +161,16 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
 
       <div className="flex items-center justify-between">
         <button 
+          type="button"
           onClick={() => router.back()}
-          className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-slate-900 bg-white px-4 py-2.5 rounded-2xl border border-slate-100 shadow-2xs transition-all cursor-pointer"
+          className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-white dark:bg-slate-900 px-4 py-2.5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-2xs transition-all cursor-pointer"
         >
           <ArrowLeft size={16} /> Буцах
         </button>
 
         {!isEditing ? (
           <button
+            type="button"
             onClick={() => setIsEditing(true)}
             className="inline-flex items-center gap-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 px-4 py-2.5 rounded-2xl shadow-sm transition-all cursor-pointer"
           >
@@ -177,12 +179,14 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
         ) : (
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={() => { setIsEditing(false); setFormData(customer); }}
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 px-4 py-2.5 rounded-2xl transition-all cursor-pointer"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-4 py-2.5 rounded-2xl transition-all cursor-pointer"
             >
               <X size={16} /> Болих
             </button>
             <button
+              type="button"
               onClick={handleSave}
               disabled={saving}
               className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-4 py-2.5 rounded-2xl shadow-sm transition-all cursor-pointer disabled:opacity-50"
@@ -193,24 +197,26 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
         )}
       </div>
 
-      <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-2xs space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+      <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-2xs space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-4">
             <div className={`w-16 h-16 rounded-2xl flex items-center justify-center font-black text-2xl shrink-0 ${
-              customer.customer_type === 'company' ? 'bg-blue-50 text-blue-600' : 'bg-purple-50 text-purple-600'
+              customer.customer_type === 'company' 
+                ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400' 
+                : 'bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400'
             }`}>
               {customer.customer_type === 'company' ? <Building2 size={32} /> : <User size={32} />}
             </div>
             <div>
-              <h1 className="text-xl font-black text-slate-900">{displayName}</h1>
-              <p className="text-xs text-slate-400 font-bold uppercase mt-1">
+              <h1 className="text-xl font-black text-slate-900 dark:text-white">{displayName}</h1>
+              <p className="text-xs text-slate-400 dark:text-slate-400 font-bold uppercase mt-1">
                 {customer.customer_type === 'company' 
                   ? `Байгууллага (ТТД: ${customer.tax_number || '-'})` 
                   : `Хувь хүний харилцагч ${customer.male ? `(${customer.male})` : ''}`}
               </p>
             </div>
           </div>
-          <span className="inline-flex items-center gap-1.5 text-xs font-extrabold px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-600 w-fit">
+          <span className="inline-flex items-center gap-1.5 text-xs font-extrabold px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 w-fit">
             <ShieldCheck size={14} /> {customer.status || 'active'}
           </span>
         </div>
@@ -218,42 +224,42 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
           {/* Зүүн багана */}
           <div className="space-y-4">
-            <h3 className="font-black text-slate-400 uppercase tracking-wider text-[11px]">Холбоо барих мэдээлэл</h3>
+            <h3 className="font-black text-slate-400 dark:text-slate-400 uppercase tracking-wider text-[11px]">Холбоо барих мэдээлэл</h3>
             
             {/* Имэйл */}
-            <div className="flex items-center gap-3 p-3 bg-slate-50/50 rounded-2xl">
-              <Mail size={16} className="text-slate-400 shrink-0" />
+            <div className="flex items-center gap-3 p-3 bg-slate-50/50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+              <Mail size={16} className="text-slate-400 dark:text-slate-500 shrink-0" />
               <div className="w-full">
-                <p className="text-[10px] text-slate-400 font-bold">Имэйл хаяг</p>
+                <p className="text-[10px] text-slate-400 dark:text-slate-400 font-bold">Имэйл хаяг</p>
                 {isEditing ? (
                   <input
                     type="email"
                     name="email"
                     value={formData.email || ''}
                     onChange={handleInputChange}
-                    className="w-full mt-1 bg-white border border-slate-200 px-2.5 py-1.5 rounded-xl font-bold text-slate-800 outline-none focus:border-blue-500"
+                    className="w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-1.5 rounded-xl font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 dark:focus:border-blue-400"
                   />
                 ) : (
-                  <p className="font-bold text-slate-800">{customer.email || 'Байхгүй'}</p>
+                  <p className="font-bold text-slate-800 dark:text-slate-200">{customer.email || 'Байхгүй'}</p>
                 )}
               </div>
             </div>
 
             {/* Утас */}
-            <div className="flex items-center gap-3 p-3 bg-slate-50/50 rounded-2xl">
-              <Phone size={16} className="text-slate-400 shrink-0" />
+            <div className="flex items-center gap-3 p-3 bg-slate-50/50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+              <Phone size={16} className="text-slate-400 dark:text-slate-500 shrink-0" />
               <div className="w-full">
-                <p className="text-[10px] text-slate-400 font-bold">Утасны дугаар</p>
+                <p className="text-[10px] text-slate-400 dark:text-slate-400 font-bold">Утасны дугаар</p>
                 {isEditing ? (
                   <input
                     type="text"
                     name="phone"
                     value={formData.phone || ''}
                     onChange={handleInputChange}
-                    className="w-full mt-1 bg-white border border-slate-200 px-2.5 py-1.5 rounded-xl font-bold text-slate-800 outline-none focus:border-blue-500"
+                    className="w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-1.5 rounded-xl font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 dark:focus:border-blue-400"
                   />
                 ) : (
-                  <p className="font-bold text-slate-800">{customer.phone || 'Байхгүй'}</p>
+                  <p className="font-bold text-slate-800 dark:text-slate-200">{customer.phone || 'Байхгүй'}</p>
                 )}
               </div>
             </div>
@@ -261,38 +267,38 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             {/* Компанийн хувьд: ТТД болон нэр */}
             {customer.customer_type === 'company' && (
               <>
-                <div className="flex items-center gap-3 p-3 bg-slate-50/50 rounded-2xl">
-                  <FileText size={16} className="text-slate-400 shrink-0" />
+                <div className="flex items-center gap-3 p-3 bg-slate-50/50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                  <FileText size={16} className="text-slate-400 dark:text-slate-500 shrink-0" />
                   <div className="w-full">
-                    <p className="text-[10px] text-slate-400 font-bold">Компанийн нэр</p>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-400 font-bold">Компанийн нэр</p>
                     {isEditing ? (
                       <input
                         type="text"
                         name="name"
                         value={formData.name || ''}
                         onChange={handleInputChange}
-                        className="w-full mt-1 bg-white border border-slate-200 px-2.5 py-1.5 rounded-xl font-bold text-slate-800 outline-none focus:border-blue-500"
+                        className="w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-1.5 rounded-xl font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 dark:focus:border-blue-400"
                       />
                     ) : (
-                      <p className="font-bold text-slate-800">{customer.name || 'Байхгүй'}</p>
+                      <p className="font-bold text-slate-800 dark:text-slate-200">{customer.name || 'Байхгүй'}</p>
                     )}
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 p-3 bg-slate-50/50 rounded-2xl">
-                  <FileText size={16} className="text-slate-400 shrink-0" />
+                <div className="flex items-center gap-3 p-3 bg-slate-50/50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                  <FileText size={16} className="text-slate-400 dark:text-slate-500 shrink-0" />
                   <div className="w-full">
-                    <p className="text-[10px] text-slate-400 font-bold">Татвар төлөгчийн дугаар (ТТД)</p>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-400 font-bold">Татвар төлөгчийн дугаар (ТТД)</p>
                     {isEditing ? (
                       <input
                         type="text"
                         name="tax_number"
                         value={formData.tax_number || ''}
                         onChange={handleInputChange}
-                        className="w-full mt-1 bg-white border border-slate-200 px-2.5 py-1.5 rounded-xl font-bold text-slate-800 outline-none focus:border-blue-500"
+                        className="w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-1.5 rounded-xl font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 dark:focus:border-blue-400"
                       />
                     ) : (
-                      <p className="font-bold text-slate-800">{customer.tax_number || 'Байхгүй'}</p>
+                      <p className="font-bold text-slate-800 dark:text-slate-200">{customer.tax_number || 'Байхгүй'}</p>
                     )}
                   </div>
                 </div>
@@ -302,56 +308,56 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             {/* Хувь хүний хувьд: Овог, нэр, хүйс */}
             {customer.customer_type === 'individual' && (
               <>
-                <div className="flex items-center gap-3 p-3 bg-slate-50/50 rounded-2xl">
-                  <User size={16} className="text-slate-400 shrink-0" />
+                <div className="flex items-center gap-3 p-3 bg-slate-50/50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                  <User size={16} className="text-slate-400 dark:text-slate-500 shrink-0" />
                   <div className="w-full grid grid-cols-2 gap-2">
                     <div>
-                      <p className="text-[10px] text-slate-400 font-bold">Овог</p>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-400 font-bold">Овог</p>
                       {isEditing ? (
                         <input
                           type="text"
                           name="last_name"
                           value={formData.last_name || ''}
                           onChange={handleInputChange}
-                          className="w-full mt-1 bg-white border border-slate-200 px-2.5 py-1.5 rounded-xl font-bold text-slate-800 outline-none focus:border-blue-500"
+                          className="w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-1.5 rounded-xl font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 dark:focus:border-blue-400"
                         />
                       ) : (
-                        <p className="font-bold text-slate-800">{customer.last_name || '-'}</p>
+                        <p className="font-bold text-slate-800 dark:text-slate-200">{customer.last_name || '-'}</p>
                       )}
                     </div>
                     <div>
-                      <p className="text-[10px] text-slate-400 font-bold">Нэр</p>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-400 font-bold">Нэр</p>
                       {isEditing ? (
                         <input
                           type="text"
                           name="first_name"
                           value={formData.first_name || ''}
                           onChange={handleInputChange}
-                          className="w-full mt-1 bg-white border border-slate-200 px-2.5 py-1.5 rounded-xl font-bold text-slate-800 outline-none focus:border-blue-500"
+                          className="w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-1.5 rounded-xl font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 dark:focus:border-blue-400"
                         />
                       ) : (
-                        <p className="font-bold text-slate-800">{customer.first_name || '-'}</p>
+                        <p className="font-bold text-slate-800 dark:text-slate-200">{customer.first_name || '-'}</p>
                       )}
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 p-3 bg-slate-50/50 rounded-2xl">
-                  <User size={16} className="text-slate-400 shrink-0" />
+                <div className="flex items-center gap-3 p-3 bg-slate-50/50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                  <User size={16} className="text-slate-400 dark:text-slate-500 shrink-0" />
                   <div className="w-full">
-                    <p className="text-[10px] text-slate-400 font-bold">Хүйс</p>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-400 font-bold">Хүйс</p>
                     {isEditing ? (
                       <select
                         name="male"
                         value={formData.male || 'Эрэгтэй'}
                         onChange={handleInputChange}
-                        className="w-full mt-1 bg-white border border-slate-200 px-2.5 py-1.5 rounded-xl font-bold text-slate-800 outline-none focus:border-blue-500"
+                        className="w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-1.5 rounded-xl font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 dark:focus:border-blue-400"
                       >
                         <option value="Эрэгтэй">Эрэгтэй</option>
                         <option value="Эмэгтэй">Эмэгтэй</option>
                       </select>
                     ) : (
-                      <p className="font-bold text-slate-800">{customer.male || 'Байхгүй'}</p>
+                      <p className="font-bold text-slate-800 dark:text-slate-200">{customer.male || 'Байхгүй'}</p>
                     )}
                   </div>
                 </div>
@@ -361,41 +367,41 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
 
           {/* Баруун багана */}
           <div className="space-y-4">
-            <h3 className="font-black text-slate-400 uppercase tracking-wider text-[11px]">Бусад мэдээлэл</h3>
+            <h3 className="font-black text-slate-400 dark:text-slate-400 uppercase tracking-wider text-[11px]">Бусад мэдээлэл</h3>
             
-            <div className="flex items-center gap-3 p-3 bg-slate-50/50 rounded-2xl">
-              <MapPin size={16} className="text-slate-400 shrink-0" />
+            <div className="flex items-center gap-3 p-3 bg-slate-50/50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+              <MapPin size={16} className="text-slate-400 dark:text-slate-500 shrink-0" />
               <div className="w-full">
-                <p className="text-[10px] text-slate-400 font-bold">Хаяг байршил</p>
+                <p className="text-[10px] text-slate-400 dark:text-slate-400 font-bold">Хаяг байршил</p>
                 {isEditing ? (
                   <input
                     type="text"
                     name="address"
                     value={formData.address || ''}
                     onChange={handleInputChange}
-                    className="w-full mt-1 bg-white border border-slate-200 px-2.5 py-1.5 rounded-xl font-bold text-slate-800 outline-none focus:border-blue-500"
+                    className="w-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2.5 py-1.5 rounded-xl font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 dark:focus:border-blue-400"
                   />
                 ) : (
-                  <p className="font-bold text-slate-800">{customer.address || 'Байхгүй'}</p>
+                  <p className="font-bold text-slate-800 dark:text-slate-200">{customer.address || 'Байхгүй'}</p>
                 )}
               </div>
             </div>
 
-            <div className="flex items-center gap-3 p-3 bg-slate-50/50 rounded-2xl">
-              <Calendar size={16} className="text-slate-400 shrink-0" />
+            <div className="flex items-center gap-3 p-3 bg-slate-50/50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+              <Calendar size={16} className="text-slate-400 dark:text-slate-500 shrink-0" />
               <div>
-                <p className="text-[10px] text-slate-400 font-bold">Бүртгүүлсэн огноо</p>
-                <p className="font-bold text-slate-800">
+                <p className="text-[10px] text-slate-400 dark:text-slate-400 font-bold">Бүртгүүлсэн огноо</p>
+                <p className="font-bold text-slate-800 dark:text-slate-200">
                   {customer.create_date ? new Date(customer.create_date).toLocaleString() : '-'}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 p-3 bg-slate-50/50 rounded-2xl">
-              <RefreshCw size={16} className="text-slate-400 shrink-0" />
+            <div className="flex items-center gap-3 p-3 bg-slate-50/50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+              <RefreshCw size={16} className="text-slate-400 dark:text-slate-500 shrink-0" />
               <div>
-                <p className="text-[10px] text-slate-400 font-bold">Шинэчилсэн огноо</p>
-                <p className="font-bold text-slate-800">
+                <p className="text-[10px] text-slate-400 dark:text-slate-400 font-bold">Шинэчилсэн огноо</p>
+                <p className="font-bold text-slate-800 dark:text-slate-200">
                   {customer.update_date ? new Date(customer.update_date).toLocaleString() : '-'}
                 </p>
               </div>

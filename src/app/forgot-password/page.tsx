@@ -93,11 +93,11 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8fbff] flex items-center justify-center relative overflow-hidden px-4 sm:px-6 py-12">
+    <div className="min-h-screen bg-[#f8fbff] dark:bg-slate-950 flex items-center justify-center relative overflow-hidden px-4 sm:px-6 py-12 transition-colors">
       
       {/* Blueprint Grid Pattern */}
       <div 
-        className="absolute inset-0 opacity-[0.7] pointer-events-none -z-10"
+        className="absolute inset-0 opacity-[0.7] dark:opacity-10 pointer-events-none -z-10"
         style={{
           backgroundImage: `
             linear-gradient(to right, #bae6fd 1.5px, transparent 1.5px),
@@ -111,9 +111,9 @@ export default function ForgotPasswordPage() {
       />
 
       {/* Decorative soft glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 sm:w-125 sm:h-75 bg-blue-200/50 blur-[120px] sm:blur-[140px] rounded-full pointer-events-none -z-10" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 sm:w-125 sm:h-75 bg-blue-200/50 dark:bg-blue-900/20 blur-[120px] sm:blur-[140px] rounded-full pointer-events-none -z-10" />
 
-      <div className="max-w-md w-full bg-white/95 backdrop-blur-md border border-slate-200/95 p-6 sm:p-10 rounded-3xl shadow-xl shadow-blue-500/10 relative z-10">
+      <div className="max-w-md w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/95 dark:border-slate-800 p-6 sm:p-10 rounded-3xl shadow-xl shadow-blue-500/10 dark:shadow-none relative z-10 transition-colors">
         
         {/* Header */}
         <div className="text-center mb-6 sm:mb-8">
@@ -121,12 +121,12 @@ export default function ForgotPasswordPage() {
             <div className="bg-linear-to-tr from-blue-600 to-sky-400 text-white p-2.5 rounded-2xl font-black text-sm tracking-wider shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
               OD
             </div>
-            <span className="text-xl font-extrabold tracking-tight text-slate-900">
-              Open <span className="text-blue-600">Data</span>
+            <span className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+              Open <span className="text-blue-600 dark:text-blue-400">Data</span>
             </span>
           </Link>
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Нууц үг сэргээх</h1>
-          <p className="text-slate-500 text-xs sm:text-sm mt-1">
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">Нууц үг сэргээх</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-1">
             {step === 'request' 
               ? 'Имэйл хаягаа оруулж баталгаажуулах код хүлээн авна уу' 
               : 'Имэйлээр ирсэн код болон шинэ нууц үгээ хоёр удаа оруулна уу'}
@@ -135,7 +135,7 @@ export default function ForgotPasswordPage() {
 
         {/* Алдааны мессеж */}
         {error && (
-          <div className="bg-rose-50 border border-rose-200 text-rose-700 p-3 rounded-xl text-xs sm:text-sm mb-4 font-bold text-center animate-in fade-in">
+          <div className="bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 p-3 rounded-xl text-xs sm:text-sm mb-4 font-bold text-center animate-in fade-in">
             {error}
           </div>
         )}
@@ -143,12 +143,12 @@ export default function ForgotPasswordPage() {
         {/* Нууц үг амжилттай солигдсон үед */}
         {success ? (
           <div className="text-center space-y-4 py-4 animate-in fade-in">
-            <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto shadow-sm">
+            <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center mx-auto shadow-sm">
               <CheckCircle2 size={24} />
             </div>
             <div className="space-y-1">
-              <h3 className="text-base font-extrabold text-slate-900">Нууц үг амжилттай шинэчлэгдлээ</h3>
-              <p className="text-xs sm:text-sm text-slate-500">
+              <h3 className="text-base font-extrabold text-slate-900 dark:text-white">Нууц үг амжилттай шинэчлэгдлээ</h3>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
                 Та шинэ нууц үгээрээ амжилттай нэвтрэх боломжтой боллоо.
               </p>
             </div>
@@ -163,11 +163,11 @@ export default function ForgotPasswordPage() {
           /* 1. ИМЭЙЛ ОРУУЛАХ ФОРМ */
           <form className="space-y-4 sm:space-y-5" onSubmit={handleRequestSubmit}>
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
                 Бүртгэлтэй имэйл хаяг
               </label>
               <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400">
+                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 dark:text-slate-500">
                   <Mail size={18} />
                 </span>
                 <input 
@@ -177,7 +177,7 @@ export default function ForgotPasswordPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="example@business.mn" 
-                  className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                  className="w-full pl-11 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 focus:bg-white dark:focus:bg-slate-800 transition-all"
                 />
               </div>
             </div>
@@ -200,11 +200,11 @@ export default function ForgotPasswordPage() {
           /* 2. ТОКЕН БОЛОН ШИНЭ НУУЦ ҮГ (2 УДАА) ОРУУЛАХ ФОРМ */
           <form className="space-y-4 sm:space-y-5" onSubmit={handleResetSubmit}>
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
                 Баталгаажуулах код
               </label>
               <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400">
+                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 dark:text-slate-500">
                   <KeyRound size={18} />
                 </span>
                 <input 
@@ -213,17 +213,17 @@ export default function ForgotPasswordPage() {
                   value={token}
                   onChange={(e) => setToken(e.target.value)}
                   placeholder="6 оронтой код" 
-                  className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition-all tracking-widest font-bold"
+                  className="w-full pl-11 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 focus:bg-white dark:focus:bg-slate-800 transition-all tracking-widest font-bold"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
                 Шинэ нууц үг
               </label>
               <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400">
+                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 dark:text-slate-500">
                   <Lock size={18} />
                 </span>
                 <input 
@@ -232,17 +232,17 @@ export default function ForgotPasswordPage() {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="••••••••" 
-                  className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                  className="w-full pl-11 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 focus:bg-white dark:focus:bg-slate-800 transition-all"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
                 Шинэ нууц үг давтах
               </label>
               <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400">
+                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 dark:text-slate-500">
                   <Lock size={18} />
                 </span>
                 <input 
@@ -251,7 +251,7 @@ export default function ForgotPasswordPage() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="••••••••" 
-                  className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                  className="w-full pl-11 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 focus:bg-white dark:focus:bg-slate-800 transition-all"
                 />
               </div>
             </div>
@@ -273,8 +273,8 @@ export default function ForgotPasswordPage() {
         )}
 
         {/* Footer Link */}
-        <div className="text-center mt-6 sm:mt-8 pt-6 border-t border-slate-100 text-xs sm:text-sm text-slate-500">
-          <Link href="/login" className="inline-flex items-center gap-1.5 font-bold text-blue-600 hover:underline">
+        <div className="text-center mt-6 sm:mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+          <Link href="/login" className="inline-flex items-center gap-1.5 font-bold text-blue-600 dark:text-blue-400 hover:underline">
             <ArrowLeft size={14} /> Нэвтрэх хуудас руу буцах
           </Link>
         </div>

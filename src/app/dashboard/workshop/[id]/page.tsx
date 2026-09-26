@@ -2,10 +2,7 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  Wrench, ArrowLeft, User, Briefcase, 
-  Save, CheckCircle2, Clock, X, ShieldAlert 
-} from 'lucide-react';
+import { ArrowLeft, Save } from 'lucide-react';
 import Loading from '@/src/app/components/loading';
 
 interface OptionData {
@@ -41,14 +38,21 @@ export default function WorkDetailPage({ params }: { params: Promise<{ id: strin
     try {
       setLoading(true);
       
-      // Ажлын дэлгэрэнгүй датаг авах
-      const res = await fetch(`/api/workshop/${workId}`);
-      const result = await res.json();
+      const [workRes, optRes] = await Promise.all([
+        fetch(`/api/workshop/${workId}`),
+        fetch('/api/workshop?action=options')
+      ]);
+
+      const workResult = await workRes.json();
+      const optResult = await optRes.json();
+
+      if (optResult.success) {
+        setOptions(optResult.data);
+      }
       
-      if (result.success && result.data) {
-        const item = result.data;
+      if (workResult.success && workResult.data) {
+        const item = workResult.data;
         
-        // Харилцагчийн төрлөөс шалтгаалж ID-г зөв сонгож оноох
         const currentCustomerId = item.customer_type === 'company' 
           ? (item.company_customer_id || '') 
           : (item.customer_id || '');
@@ -61,18 +65,10 @@ export default function WorkDetailPage({ params }: { params: Promise<{ id: strin
           assigned_employee: item.assigned_employee ? item.assigned_employee.toString() : '',
           price: item.price !== null && item.price !== undefined ? item.price.toString() : '',
           status: item.status || 'pending',
-          // Priority-г баазаас ирэхэд том/жижиг үсэг ямар ч байсан таардаг болгох
           priority: item.priority ? item.priority.toLowerCase() : 'medium',
           due_date: item.due_date ? item.due_date.split('T')[0] : '',
           description: item.description || ''
         });
-      }
-
-      // Сонголтын датануудыг авах
-      const optRes = await fetch('/api/workshop?action=options');
-      const optResult = await optRes.json();
-      if (optResult.success) {
-        setOptions(optResult.data);
       }
     } catch (err) {
       console.error('Failed to fetch work detail:', err);
@@ -88,11 +84,20 @@ export default function WorkDetailPage({ params }: { params: Promise<{ id: strin
   const handleServiceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const sId = e.target.value;
     const selectedService = options.services.find(s => s.service_id.toString() === sId);
-    setFormData({
-      ...formData,
+    setFormData(prev => ({
+      ...prev,
       service_id: sId,
-      price: selectedService ? selectedService.price.toString() : formData.price
-    });
+      price: selectedService ? selectedService.price.toString() : prev.price
+    }));
+  };
+
+  const handleCustomerTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const type = e.target.value as 'individual' | 'company';
+    setFormData(prev => ({
+      ...prev,
+      customer_type: type,
+      customer_id: ''
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -126,41 +131,42 @@ export default function WorkDetailPage({ params }: { params: Promise<{ id: strin
   return (
     <div className="max-w-3xl mx-auto space-y-6 pb-20">
       {/* Header */}
-      <div className="flex items-center justify-between bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-100 shadow-2xs">
+      <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-100 dark:border-slate-800 shadow-2xs transition-colors">
         <div className="flex items-center gap-3">
           <button
+            type="button"
             onClick={() => router.push('/dashboard/workshop')}
-            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all cursor-pointer"
+            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-all cursor-pointer"
           >
             <ArrowLeft size={18} />
           </button>
           <div>
-            <h1 className="text-base sm:text-xl font-black text-slate-900">Ажлын дэлгэрэнгүй & Засварлах</h1>
-            <p className="text-[11px] sm:text-xs text-slate-400">Мэдээллийг өөрчлөөд хадгалах товчийг дарна уу</p>
+            <h1 className="text-base sm:text-xl font-black text-slate-900 dark:text-white">Ажлын дэлгэрэнгүй & Засварлах</h1>
+            <p className="text-[11px] sm:text-xs text-slate-400 dark:text-slate-400">Мэдээллийг өөрчлөөд хадгалах товчийг дарна уу</p>
           </div>
         </div>
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="bg-white p-5 sm:p-8 rounded-2xl sm:rounded-3xl border border-slate-100 shadow-2xs space-y-4">
+      <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-900 p-5 sm:p-8 rounded-2xl sm:rounded-3xl border border-slate-100 dark:border-slate-800 shadow-2xs space-y-4 transition-colors">
         <div>
-          <label className="block text-xs font-bold text-slate-600 mb-1">Ажлын нэр / Гарчиг *</label>
+          <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Ажлын нэр / Гарчиг *</label>
           <input 
             type="text"
             required
             value={formData.title}
             onChange={(e) => setFormData({...formData, title: e.target.value})}
-            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 outline-none focus:border-blue-500"
+            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 dark:focus:border-blue-400"
           />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-bold text-slate-600 mb-1">Харилцагчийн төрөл *</label>
+            <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Харилцагчийн төрөл *</label>
             <select
               value={formData.customer_type}
-              onChange={(e) => setFormData({...formData, customer_type: e.target.value as 'individual' | 'company', customer_id: ''})}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 outline-none focus:border-blue-500 bg-white"
+              onChange={handleCustomerTypeChange}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 dark:focus:border-blue-400 bg-white dark:bg-slate-900"
             >
               <option value="individual">Хувь хүн</option>
               <option value="company">Компани</option>
@@ -168,12 +174,12 @@ export default function WorkDetailPage({ params }: { params: Promise<{ id: strin
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-600 mb-1">Харилцагч сонгох *</label>
+            <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Харилцагч сонгох *</label>
             <select
               required
               value={formData.customer_id}
               onChange={(e) => setFormData({...formData, customer_id: e.target.value})}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 outline-none focus:border-blue-500 bg-white"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 dark:focus:border-blue-400 bg-white dark:bg-slate-900"
             >
               <option value="">-- Сонгох --</option>
               {formData.customer_type === 'individual' ? (
@@ -195,11 +201,11 @@ export default function WorkDetailPage({ params }: { params: Promise<{ id: strin
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-bold text-slate-600 mb-1">Үйлчилгээ</label>
+            <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Үйлчилгээ</label>
             <select
               value={formData.service_id}
               onChange={handleServiceChange}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 outline-none focus:border-blue-500 bg-white"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 dark:focus:border-blue-400 bg-white dark:bg-slate-900"
             >
               <option value="">-- Үйлчилгээ сонгох --</option>
               {options.services.map(ser => (
@@ -211,11 +217,11 @@ export default function WorkDetailPage({ params }: { params: Promise<{ id: strin
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-600 mb-1">Хариуцсан ажилтан</label>
+            <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Хариуцсан ажилтан</label>
             <select
               value={formData.assigned_employee}
               onChange={(e) => setFormData({...formData, assigned_employee: e.target.value})}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 outline-none focus:border-blue-500 bg-white"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 dark:focus:border-blue-400 bg-white dark:bg-slate-900"
             >
               <option value="">-- Ажилтан сонгох --</option>
               {options.employees.map(emp => (
@@ -229,11 +235,11 @@ export default function WorkDetailPage({ params }: { params: Promise<{ id: strin
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
-            <label className="block text-xs font-bold text-slate-600 mb-1">Төлөв</label>
+            <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Төлөв</label>
             <select
               value={formData.status}
               onChange={(e) => setFormData({...formData, status: e.target.value})}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 outline-none focus:border-blue-500 bg-white"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 dark:focus:border-blue-400 bg-white dark:bg-slate-900"
             >
               <option value="pending">Хүлээгдэж буй</option>
               <option value="in_progress">Хийгдэж байна</option>
@@ -243,11 +249,11 @@ export default function WorkDetailPage({ params }: { params: Promise<{ id: strin
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-600 mb-1">Зэрэглэл (Priority)</label>
+            <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Зэрэглэл (Priority)</label>
             <select
               value={formData.priority}
               onChange={(e) => setFormData({...formData, priority: e.target.value})}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 outline-none focus:border-blue-500 bg-white"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 dark:focus:border-blue-400 bg-white dark:bg-slate-900"
             >
               <option value="low">Энгийн</option>
               <option value="medium">Дунд</option>
@@ -256,43 +262,43 @@ export default function WorkDetailPage({ params }: { params: Promise<{ id: strin
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-600 mb-1">Үнэ (₮)</label>
+            <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Үнэ (₮)</label>
             <input 
               type="number"
               value={formData.price}
               onChange={(e) => setFormData({...formData, price: e.target.value})}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 outline-none focus:border-blue-500"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 dark:focus:border-blue-400"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-600 mb-1">Дуусах хугацаа</label>
+            <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Дуусах хугацаа</label>
             <input 
               type="date"
               value={formData.due_date}
               onChange={(e) => setFormData({...formData, due_date: e.target.value})}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 outline-none focus:border-blue-500"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 dark:focus:border-blue-400"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-slate-600 mb-1">Тайлбар</label>
+          <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Тайлбар</label>
           <textarea 
             rows={4}
             value={formData.description}
             onChange={(e) => setFormData({...formData, description: e.target.value})}
-            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-800 outline-none focus:border-blue-500 resize-none"
+            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 dark:focus:border-blue-400 resize-none"
           />
         </div>
 
-        <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
+        <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100 dark:border-slate-800">
           <button
             type="button"
             onClick={() => router.push('/dashboard/workshop')}
-            className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all cursor-pointer"
+            className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition-all cursor-pointer"
           >
-            Цуцлах
+            цуцлах
           </button>
           <button
             type="submit"

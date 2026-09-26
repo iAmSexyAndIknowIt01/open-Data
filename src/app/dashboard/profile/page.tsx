@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -124,147 +125,167 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-100">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600 dark:text-blue-400" />
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
+    <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8 pb-20 font-sans antialiased text-slate-800 dark:text-slate-100">
+      
       {/* Header section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900">Хэрэглэгчийн профайл</h1>
-          <p className="text-slate-500 text-xs sm:text-sm mt-1">Бүртгэлтэй мэдээллээ харж, шинэчлэх боломжтой.</p>
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">Хэрэглэгчийн профайл</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-1">Бүртгэлтэй мэдээллээ харж, шинэчлэх боломжтой.</p>
         </div>
 
         {!isEditing && (
           <button 
             type="button"
             onClick={handleEditClick}
-            className="flex items-center justify-center gap-2 bg-white hover:bg-slate-50 text-slate-700 font-bold px-4 py-2.5 rounded-2xl border border-slate-200 shadow-sm transition-all text-sm cursor-pointer self-start sm:self-auto"
+            className="flex items-center justify-center gap-2 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xs transition-all text-sm cursor-pointer self-start sm:self-auto"
           >
-            <Edit3 size={16} className="text-blue-600" /> Засах
+            <Edit3 size={16} className="text-blue-600 dark:text-blue-400" /> Засах
           </button>
         )}
       </div>
 
       {successMessage && (
-        <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-2xl flex items-center gap-2 text-xs sm:text-sm font-bold">
-          <CheckCircle2 size={18} className="shrink-0" /> Мэдээлэл амжилттай шинэчлэгдлээ!
+        <div className="bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 px-4 py-3 rounded-2xl flex items-center gap-2 text-xs sm:text-sm font-bold shadow-2xs">
+          <CheckCircle2 size={18} className="shrink-0 text-emerald-600 dark:text-emerald-400" /> Мэдээлэл амжилттай шинэчлэгдлээ!
         </div>
       )}
 
       {errorMessage && (
-        <div className="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-2xl text-xs sm:text-sm font-bold">
+        <div className="bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 px-4 py-3 rounded-2xl text-xs sm:text-sm font-bold shadow-2xs">
           {errorMessage}
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="bg-white p-5 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-slate-100 gap-4">
+        <div className="bg-white dark:bg-slate-900 p-5 sm:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-slate-100 dark:border-slate-800 gap-4">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 sm:w-16 sm:h-16 bg-linear-to-tr from-blue-600 to-sky-400 text-white rounded-2xl flex items-center justify-center font-black text-lg sm:text-xl shadow-md shrink-0">
                 {formData.firstName ? formData.firstName.substring(0, 2).toUpperCase() : 'ХӨ'}
               </div>
               <div className="min-w-0">
-                <h2 className="font-extrabold text-base sm:text-lg text-slate-900 truncate">{formData.lastName} {formData.firstName}</h2>
-                <p className="text-slate-500 text-xs sm:text-sm truncate">Компани: {formData.companyName}</p>
+                <h2 className="font-extrabold text-base sm:text-lg text-slate-900 dark:text-white truncate">{formData.lastName} {formData.firstName}</h2>
+                <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm truncate">Компани: {formData.companyName}</p>
               </div>
             </div>
-            <span className={`text-xs font-bold px-3 py-1 rounded-full self-start sm:self-auto ${isEditing ? 'bg-amber-50 text-amber-600 border border-amber-200' : 'bg-slate-100 text-slate-500'}`}>
+            <span className={`text-xs font-bold px-3 py-1 rounded-full self-start sm:self-auto ${isEditing ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'}`}>
               {isEditing ? 'Засах горим' : 'Харах горим'}
             </span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Компанийн нэр</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Компанийн нэр</label>
               <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400"><Building2 size={18} /></span>
+                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 dark:text-slate-500"><Building2 size={18} /></span>
                 <input 
                   type="text" 
                   name="companyName"
                   value={formData.companyName}
                   disabled={true} // Компанийн нэрийг профайлаас шууд өөрчлөхгүй байхаар тохируулав
-                  className="w-full pl-11 pr-4 py-3 border rounded-2xl text-slate-600 text-sm bg-slate-100/60 border-slate-100 cursor-not-allowed"
+                  className="w-full pl-11 pr-4 py-3 border rounded-2xl text-slate-600 dark:text-slate-400 text-sm bg-slate-100/60 dark:bg-slate-800/60 border-slate-100 dark:border-slate-800 cursor-not-allowed"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Имэйл хаяг</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Имэйл хаяг</label>
               <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400"><Mail size={18} /></span>
+                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 dark:text-slate-500"><Mail size={18} /></span>
                 <input 
                   type="email" 
                   name="email"
                   value={formData.email}
                   disabled={!isEditing}
                   onChange={handleChange}
-                  className={`w-full pl-11 pr-4 py-3 border rounded-2xl text-slate-900 text-sm transition-all ${isEditing ? 'bg-slate-50 border-slate-200 focus:outline-none focus:border-blue-500 focus:bg-white' : 'bg-slate-100/60 border-slate-100 cursor-not-allowed text-slate-600'}`}
+                  className={`w-full pl-11 pr-4 py-3 border rounded-2xl text-sm transition-all ${
+                    isEditing 
+                      ? 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-600 focus:bg-white dark:focus:bg-slate-900' 
+                      : 'bg-slate-100/60 dark:bg-slate-800/60 border-slate-100 dark:border-slate-800 cursor-not-allowed text-slate-600 dark:text-slate-400'
+                  }`}
                 />
               </div>
             </div>
             
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Овог</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Овог</label>
               <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400"><User size={18} /></span>
+                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 dark:text-slate-500"><User size={18} /></span>
                 <input 
                   type="text" 
                   name="lastName"
                   value={formData.lastName}
                   disabled={!isEditing}
                   onChange={handleChange}
-                  className={`w-full pl-11 pr-4 py-3 border rounded-2xl text-slate-900 text-sm transition-all ${isEditing ? 'bg-slate-50 border-slate-200 focus:outline-none focus:border-blue-500 focus:bg-white' : 'bg-slate-100/60 border-slate-100 cursor-not-allowed text-slate-600'}`}
+                  className={`w-full pl-11 pr-4 py-3 border rounded-2xl text-sm transition-all ${
+                    isEditing 
+                      ? 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-600 focus:bg-white dark:focus:bg-slate-900' 
+                      : 'bg-slate-100/60 dark:bg-slate-800/60 border-slate-100 dark:border-slate-800 cursor-not-allowed text-slate-600 dark:text-slate-400'
+                  }`}
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Нэр</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Нэр</label>
               <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400"><User size={18} /></span>
+                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 dark:text-slate-500"><User size={18} /></span>
                 <input 
                   type="text" 
                   name="firstName"
                   value={formData.firstName}
                   disabled={!isEditing}
                   onChange={handleChange}
-                  className={`w-full pl-11 pr-4 py-3 border rounded-2xl text-slate-900 text-sm transition-all ${isEditing ? 'bg-slate-50 border-slate-200 focus:outline-none focus:border-blue-500 focus:bg-white' : 'bg-slate-100/60 border-slate-100 cursor-not-allowed text-slate-600'}`}
+                  className={`w-full pl-11 pr-4 py-3 border rounded-2xl text-sm transition-all ${
+                    isEditing 
+                      ? 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-600 focus:bg-white dark:focus:bg-slate-900' 
+                      : 'bg-slate-100/60 dark:bg-slate-800/60 border-slate-100 dark:border-slate-800 cursor-not-allowed text-slate-600 dark:text-slate-400'
+                  }`}
                 />
               </div>
             </div>
 
-
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Утасны дугаар</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Утасны дугаар</label>
               <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400"><Phone size={18} /></span>
+                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 dark:text-slate-500"><Phone size={18} /></span>
                 <input 
                   type="text" 
                   name="phone"
                   value={formData.phone}
                   disabled={!isEditing}
                   onChange={handleChange}
-                  className={`w-full pl-11 pr-4 py-3 border rounded-2xl text-slate-900 text-sm transition-all ${isEditing ? 'bg-slate-50 border-slate-200 focus:outline-none focus:border-blue-500 focus:bg-white' : 'bg-slate-100/60 border-slate-100 cursor-not-allowed text-slate-600'}`}
+                  className={`w-full pl-11 pr-4 py-3 border rounded-2xl text-sm transition-all ${
+                    isEditing 
+                      ? 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-600 focus:bg-white dark:focus:bg-slate-900' 
+                      : 'bg-slate-100/60 dark:bg-slate-800/60 border-slate-100 dark:border-slate-800 cursor-not-allowed text-slate-600 dark:text-slate-400'
+                  }`}
                 />
               </div>
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Хаяг байршил</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Хаяг байршил</label>
               <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400"><MapPin size={18} /></span>
+                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 dark:text-slate-500"><MapPin size={18} /></span>
                 <input 
                   type="text" 
                   name="address"
                   value={formData.address}
                   disabled={!isEditing}
                   onChange={handleChange}
-                  className={`w-full pl-11 pr-4 py-3 border rounded-2xl text-slate-900 text-sm transition-all ${isEditing ? 'bg-slate-50 border-slate-200 focus:outline-none focus:border-blue-500 focus:bg-white' : 'bg-slate-100/60 border-slate-100 cursor-not-allowed text-slate-600'}`}
+                  className={`w-full pl-11 pr-4 py-3 border rounded-2xl text-sm transition-all ${
+                    isEditing 
+                      ? 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-blue-600 focus:bg-white dark:focus:bg-slate-900' 
+                      : 'bg-slate-100/60 dark:bg-slate-800/60 border-slate-100 dark:border-slate-800 cursor-not-allowed text-slate-600 dark:text-slate-400'
+                  }`}
                 />
               </div>
             </div>
@@ -273,18 +294,18 @@ export default function ProfilePage() {
 
         {/* Нууц үг солих хэсэг */}
         {isEditing && (
-          <div className="bg-white p-5 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+          <div className="bg-white dark:bg-slate-900 p-5 sm:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xs space-y-6">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-3">
-                <Shield className="text-blue-600 shrink-0" size={20} />
-                <h3 className="font-extrabold text-sm sm:text-base text-slate-900">Аюулгүй байдал</h3>
+                <Shield className="text-blue-600 dark:text-blue-400 shrink-0" size={20} />
+                <h3 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-white">Аюулгүй байдал</h3>
               </div>
 
               {!isChangingPassword ? (
                 <button
                   type="button"
                   onClick={() => setIsChangingPassword(true)}
-                  className="flex items-center gap-2 text-xs font-bold bg-blue-50 text-blue-600 hover:bg-blue-100 px-3.5 py-2 rounded-xl transition-all cursor-pointer"
+                  className="flex items-center gap-2 text-xs font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900 hover:bg-blue-100 dark:hover:bg-blue-900 px-3.5 py-2 rounded-xl transition-all cursor-pointer"
                 >
                   <KeyRound size={14} /> Нууц үг солих
                 </button>
@@ -295,7 +316,7 @@ export default function ProfilePage() {
                     setIsChangingPassword(false);
                     setFormData(prev => ({ ...prev, currentPassword: '', newPassword: '', confirmPassword: '' }));
                   }}
-                  className="text-xs font-bold text-rose-500 hover:text-rose-700 transition-all cursor-pointer"
+                  className="text-xs font-bold text-rose-500 hover:text-rose-700 dark:hover:text-rose-400 transition-all cursor-pointer"
                 >
                   Цуцлах
                 </button>
@@ -305,38 +326,38 @@ export default function ProfilePage() {
             {isChangingPassword && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Хуучин нууц үг</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Хуучин нууц үг</label>
                   <input 
                     type="password" 
                     name="currentPassword"
                     value={formData.currentPassword}
                     onChange={handleChange}
                     placeholder="••••••••"
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:bg-white"
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-blue-600 focus:bg-white dark:focus:bg-slate-900"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Шинэ нууц үг</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Шинэ нууц үг</label>
                   <input 
                     type="password" 
                     name="newPassword"
                     value={formData.newPassword}
                     onChange={handleChange}
                     placeholder="••••••••"
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:bg-white"
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-blue-600 focus:bg-white dark:focus:bg-slate-900"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Шинэ нууц үг давтах</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Шинэ нууц үг давтах</label>
                   <input 
                     type="password" 
                     name="confirmPassword"
                     value={formData.confirmPassword}
                     onChange={handleChange}
                     placeholder="••••••••"
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:bg-white"
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-blue-600 focus:bg-white dark:focus:bg-slate-900"
                   />
                 </div>
               </div>
@@ -349,7 +370,7 @@ export default function ProfilePage() {
             <button 
               type="button"
               onClick={handleCancelClick}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-600 font-bold px-6 py-3.5 rounded-2xl hover:bg-slate-50 transition-all text-sm cursor-pointer"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold px-6 py-3.5 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all text-sm cursor-pointer"
             >
               <X size={18} /> Цуцлах
             </button>

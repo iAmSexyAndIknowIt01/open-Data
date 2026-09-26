@@ -14,12 +14,12 @@ export default function DataPage() {
   ]);
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
+    <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8 text-slate-800 dark:text-slate-100">
       {/* Header section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900">Өгөгдлийн менежмент</h1>
-          <p className="text-slate-500 text-xs sm:text-sm mt-1">Энд та бүх өгөгдлөө удирдах, шинээр нэмэх боломжтой.</p>
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">Өгөгдлийн менежмент</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-1">Энд та бүх өгөгдлөө удирдах, шинээр нэмэх боломжтой.</p>
         </div>
 
         <button 
@@ -32,9 +32,9 @@ export default function DataPage() {
       </div>
 
       {/* Search and Filter Bar */}
-      <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="relative w-full sm:w-96">
-          <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400">
+          <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 dark:text-slate-500">
             <Search size={18} />
           </span>
           <input 
@@ -42,25 +42,25 @@ export default function DataPage() {
             placeholder="Өгөгдөл хайх..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+            className="w-full pl-11 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-slate-900 dark:text-white text-sm focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 focus:bg-white dark:focus:bg-slate-900 transition-all"
           />
         </div>
 
         <button 
           type="button"
-          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold px-4 py-2.5 rounded-2xl border border-slate-200 transition-all text-sm cursor-pointer"
+          className="w-full sm:w-auto flex items-center justify-center gap-2 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold px-4 py-2.5 rounded-2xl border border-slate-200 dark:border-slate-700 transition-all text-sm cursor-pointer"
         >
-          <Filter size={16} className="text-slate-500" /> Шүүлтүүр
+          <Filter size={16} className="text-slate-500 dark:text-slate-400" /> Шүүлтүүр
         </button>
       </div>
 
       {/* Data Table / List Section */}
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
         {dataList.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/50 text-slate-400 text-xs font-bold uppercase tracking-wider">
+                <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-400 text-xs font-bold uppercase tracking-wider">
                   <th className="py-4 px-6">Нэр</th>
                   <th className="py-4 px-6">Ангилал</th>
                   <th className="py-4 px-6">Огноо</th>
@@ -68,35 +68,35 @@ export default function DataPage() {
                   <th className="py-4 px-6 text-right">Үйлдэл</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-sm">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
                 {dataList.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-4 px-6 font-bold text-slate-800 flex items-center gap-3">
-                      <div className="w-9 h-9 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shrink-0">
+                  <tr key={item.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/60 transition-colors">
+                    <td className="py-4 px-6 font-bold text-slate-800 dark:text-slate-100 flex items-center gap-3">
+                      <div className="w-9 h-9 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center shrink-0">
                         <FileText size={18} />
                       </div>
                       <span className="truncate max-w-50 sm:max-w-none">{item.name}</span>
                     </td>
-                    <td className="py-4 px-6 text-slate-600 font-medium">{item.category}</td>
-                    <td className="py-4 px-6 text-slate-500">{item.date}</td>
+                    <td className="py-4 px-6 text-slate-600 dark:text-slate-300 font-medium">{item.category}</td>
+                    <td className="py-4 px-6 text-slate-500 dark:text-slate-400">{item.date}</td>
                     <td className="py-4 px-6">
                       <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${
                         item.status === 'Идэвхтэй' 
-                          ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' 
-                          : 'bg-amber-50 text-amber-600 border border-amber-200'
+                          ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800' 
+                          : 'bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800'
                       }`}>
                         {item.status}
                       </span>
                     </td>
                     <td className="py-4 px-6 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <button title="Татах" className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all cursor-pointer">
+                        <button title="Татах" className="p-2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50 rounded-xl transition-all cursor-pointer">
                           <Download size={16} />
                         </button>
-                        <button title="Засах" className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition-all cursor-pointer">
+                        <button title="Засах" className="p-2 text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/50 rounded-xl transition-all cursor-pointer">
                           <Edit size={16} />
                         </button>
-                        <button title="Устгах" className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all cursor-pointer">
+                        <button title="Устгах" className="p-2 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-xl transition-all cursor-pointer">
                           <Trash2 size={16} />
                         </button>
                       </div>
@@ -108,11 +108,11 @@ export default function DataPage() {
           </div>
         ) : (
           <div className="py-16 text-center space-y-3">
-            <div className="w-12 h-12 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto">
+            <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-full flex items-center justify-center mx-auto">
               <Database size={24} />
             </div>
-            <p className="text-slate-600 font-bold text-sm">Өгөгдөл олдсонгүй</p>
-            <p className="text-slate-400 text-xs">Та шинээр өгөгдөл нэмж эхэлнэ үү.</p>
+            <p className="text-slate-600 dark:text-slate-300 font-bold text-sm">Өгөгдөл олдсонгүй</p>
+            <p className="text-slate-400 dark:text-slate-500 text-xs">Та шинээр өгөгдөл нэмж эхэлнэ үү.</p>
           </div>
         )}
       </div>

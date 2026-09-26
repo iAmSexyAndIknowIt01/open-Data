@@ -2,11 +2,11 @@ import Link from 'next/link';
 
 export default function Footer() {
   return (
-    <footer className="border-t border-blue-100/60 py-12 bg-white text-slate-500 text-sm w-full relative overflow-hidden">
+    <footer className="border-t border-blue-100/60 dark:border-slate-800 py-12 bg-white dark:bg-slate-950 text-slate-500 dark:text-slate-400 text-sm w-full relative overflow-hidden transition-colors">
       
-      {/* Blueprint Grid Pattern (Цэнхэр зураасан торлог) */}
+      {/* Blueprint Grid Pattern (Цэнхэр зураасан торлог - Dark mode үед бүдэг харагдана) */}
       <div 
-        className="absolute inset-0 opacity-[0.25] pointer-events-none -z-10"
+        className="absolute inset-0 opacity-[0.25] dark:opacity-10 pointer-events-none -z-10"
         style={{
           backgroundImage: `
             linear-gradient(to right, #bae6fd 1px, transparent 1px),
@@ -20,23 +20,23 @@ export default function Footer() {
         
         {/* Logo & Brief Description */}
         <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
-          <span className="text-xl font-extrabold tracking-tight text-slate-900">
-            Open <span className="text-blue-600">Data</span>
+          <span className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+            Open <span className="text-blue-600 dark:text-blue-400">Data</span>
           </span>
-          <span className="hidden sm:inline text-slate-300">|</span>
-          <span className="text-xs text-slate-500">
+          <span className="hidden sm:inline text-slate-300 dark:text-slate-700">|</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400">
             Бизнесийн харилцагчийн ухаалаг менежментийн систем
           </span>
         </div>
 
-        {/* Links or Copyright */}
+        {/* Links */}
         <div className="flex items-center gap-6 text-xs font-medium">
-          <Link href="#problem" className="hover:text-blue-600 transition-colors">Давуу тал</Link>
-          <Link href="#features" className="hover:text-blue-600 transition-colors">Боломжууд</Link>
-          <Link href="#testimonials" className="hover:text-blue-600 transition-colors">Сэтгэгдэл</Link>
+          <Link href="#problem" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Давуу тал</Link>
+          <Link href="#features" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Боломжууд</Link>
+          <Link href="#testimonials" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Сэтгэгдэл</Link>
         </div>
 
-        <div className="text-xs text-slate-400">
+        <div className="text-xs text-slate-400 dark:text-slate-500">
           &copy; {new Date().getFullYear()} Open Data. Бүх эрх хуулиар хамгаалагдсан.
         </div>
 

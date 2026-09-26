@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Lock, Mail, Loader2 } from 'lucide-react';
-// Таны үүсгэсэн loading компонентыг импортолж байна (Зам болон нэрийг өөрийн төслийн бүтцээр шалгаарай)
 import LoadingComponent from '../components/loading';
 
 export default function LoginPage() {
@@ -63,17 +62,16 @@ export default function LoginPage() {
     }
   };
 
-  // Хэрэв уншиж байвал src/app/components/loading.tsx компонентыг дэлгэц дүүрэн харуулна
   if (isInitialLoading || loading) {
     return <LoadingComponent />;
   }
 
   return (
-    <div className="min-h-screen bg-[#f8fbff] flex items-center justify-center relative overflow-hidden px-4 sm:px-6 py-12">
+    <div className="min-h-screen bg-[#f8fbff] dark:bg-slate-950 flex items-center justify-center relative overflow-hidden px-4 sm:px-6 py-12 transition-colors duration-300">
       
       {/* Blueprint Grid Pattern */}
       <div 
-        className="absolute inset-0 opacity-[0.7] pointer-events-none -z-10"
+        className="absolute inset-0 opacity-[0.7] dark:opacity-[0.08] pointer-events-none -z-10"
         style={{
           backgroundImage: `
             linear-gradient(to right, #bae6fd 1.5px, transparent 1.5px),
@@ -87,9 +85,9 @@ export default function LoginPage() {
       />
 
       {/* Decorative soft glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 sm:w-125 sm:h-75 bg-blue-200/50 blur-[120px] sm:blur-[140px] rounded-full pointer-events-none -z-10" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 sm:w-125 sm:h-75 bg-blue-200/50 dark:bg-blue-900/15 blur-[120px] sm:blur-[140px] rounded-full pointer-events-none -z-10" />
 
-      <div className="max-w-md w-full bg-white/95 backdrop-blur-md border border-slate-200/95 p-6 sm:p-10 rounded-3xl shadow-xl shadow-blue-500/10 relative z-10">
+      <div className="max-w-md w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/95 dark:border-slate-800 p-6 sm:p-10 rounded-3xl shadow-xl shadow-blue-500/10 dark:shadow-none relative z-10">
         
         {/* Header */}
         <div className="text-center mb-6 sm:mb-8">
@@ -97,17 +95,17 @@ export default function LoginPage() {
             <div className="bg-linear-to-tr from-blue-600 to-sky-400 text-white p-2.5 rounded-2xl font-black text-sm tracking-wider shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
               OD
             </div>
-            <span className="text-xl font-extrabold tracking-tight text-slate-900">
-              Open <span className="text-blue-600">Data</span>
+            <span className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+              Open <span className="text-blue-600 dark:text-blue-400">Data</span>
             </span>
           </Link>
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Системд нэвтрэх</h1>
-          <p className="text-slate-500 text-xs sm:text-sm mt-1">Бизнесийн удирдлагын хэсэг рүүгээ орох</p>
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">Системд нэвтрэх</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-1">Бизнесийн удирдлагын хэсэг рүүгээ орох</p>
         </div>
 
         {/* Алдааны мессеж харуулах */}
         {error && (
-          <div className="bg-rose-50 border border-rose-200 text-rose-700 p-3 rounded-xl text-xs sm:text-sm mb-4 font-bold text-center animate-in fade-in">
+          <div className="bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 p-3 rounded-xl text-xs sm:text-sm mb-4 font-bold text-center animate-in fade-in">
             {error}
           </div>
         )}
@@ -115,11 +113,11 @@ export default function LoginPage() {
         {/* Form */}
         <form className="space-y-4 sm:space-y-5" onSubmit={handleSubmit}>
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
               Имэйл хаяг
             </label>
             <div className="relative">
-              <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400">
+              <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 dark:text-slate-500">
                 <Mail size={18} />
               </span>
               <input 
@@ -129,22 +127,22 @@ export default function LoginPage() {
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="example@business.mn" 
-                className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                className="w-full pl-11 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-2xl text-slate-900 dark:text-white text-sm focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 focus:bg-white dark:focus:bg-slate-800 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
               />
             </div>
           </div>
 
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Нууц үг
               </label>
-              <Link href="/forgot-password" className="text-xs font-bold text-blue-600 hover:underline">
+              <Link href="/forgot-password" className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline">
                 Нууц үгээ мартсан уу?
               </Link>
             </div>
             <div className="relative">
-              <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400">
+              <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 dark:text-slate-500">
                 <Lock size={18} />
               </span>
               <input 
@@ -154,7 +152,7 @@ export default function LoginPage() {
                 value={formData.password}
                 onChange={handleChange}
                 placeholder="••••••••" 
-                className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                className="w-full pl-11 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-2xl text-slate-900 dark:text-white text-sm focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 focus:bg-white dark:focus:bg-slate-800 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
               />
             </div>
           </div>
@@ -162,7 +160,7 @@ export default function LoginPage() {
           <button 
             type="submit"
             disabled={loading}
-            className="w-full mt-2 inline-flex items-center justify-center gap-2 bg-linear-to-r from-blue-600 to-sky-500 hover:from-blue-700 hover:to-sky-600 text-white font-extrabold px-6 py-4 rounded-2xl shadow-lg shadow-blue-500/20 transition-all hover:scale-[1.01] disabled:opacity-70 text-sm cursor-pointer"
+            className="w-full mt-2 inline-flex items-center justify-center gap-2 bg-linear-to-r from-blue-600 to-sky-500 hover:from-blue-700 hover:to-sky-600 text-white font-extrabold px-6 py-4 rounded-2xl shadow-lg shadow-blue-500/20 dark:shadow-none transition-all hover:scale-[1.01] disabled:opacity-70 text-sm cursor-pointer"
           >
             {loading ? (
               <>
@@ -177,9 +175,9 @@ export default function LoginPage() {
         </form>
 
         {/* Footer Link */}
-        <div className="text-center mt-6 sm:mt-8 pt-6 border-t border-slate-100 text-xs sm:text-sm text-slate-500">
+        <div className="text-center mt-6 sm:mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
           Бүртгэлгүй юу?{' '}
-          <Link href="/register" className="font-bold text-blue-600 hover:underline">
+          <Link href="/register" className="font-bold text-blue-600 dark:text-blue-400 hover:underline">
             Энд дарж бүртгүүлэх
           </Link>
         </div>
