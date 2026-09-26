@@ -4,6 +4,7 @@ import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Save } from 'lucide-react';
 import Loading from '@/src/app/components/loading';
+import CommonModal from '@/src/app/components/CommonModal';
 
 interface OptionData {
   individuals: { id: string; first_name: string; last_name: string; phone: string }[];
@@ -20,6 +21,19 @@ export default function WorkDetailPage({ params }: { params: Promise<{ id: strin
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [options, setOptions] = useState<OptionData>({ individuals: [], companies: [], services: [], employees: [] });
+
+  // CommonModal-ийн төлөв
+  const [modal, setModal] = useState<{
+    isOpen: boolean;
+    type: 'success' | 'error';
+    title?: string;
+    message: string;
+    onConfirm?: () => void;
+  }>({
+    isOpen: false,
+    type: 'success',
+    message: '',
+  });
 
   const [formData, setFormData] = useState({
     title: '',
@@ -52,14 +66,14 @@ export default function WorkDetailPage({ params }: { params: Promise<{ id: strin
       
       if (workResult.success && workResult.data) {
         const item = workResult.data;
-        
-        const currentCustomerId = item.customer_type === 'company' 
+        const resolvedType = item.customer_type === 'company' ? 'company' : 'individual';
+        const currentCustomerId = resolvedType === 'company' 
           ? (item.company_customer_id || '') 
           : (item.customer_id || '');
 
         setFormData({
           title: item.title || '',
-          customer_type: item.customer_type || 'individual',
+          customer_type: resolvedType,
           customer_id: currentCustomerId,
           service_id: item.service_id ? item.service_id.toString() : '',
           assigned_employee: item.assigned_employee ? item.assigned_employee.toString() : '',
@@ -110,15 +124,33 @@ export default function WorkDetailPage({ params }: { params: Promise<{ id: strin
         body: JSON.stringify(formData),
       });
       const result = await res.json();
+      
       if (result.success) {
-        alert('Амжилттай хадгалагдлаа');
-        router.push('/dashboard/workshop');
+        setModal({
+          isOpen: true,
+          type: 'success',
+          title: 'Амжилттай',
+          message: 'Ажлын мэдээлэл амжилттай шинэчлэгдлээ.',
+          onConfirm: () => {
+            router.back(); // Өмнөх хуудас (4 дүгээр хуудас) руу буцах
+          }
+        });
       } else {
-        alert(result.error || 'Хадгалахад алдаа гарлаа');
+        setModal({
+          isOpen: true,
+          type: 'error',
+          title: 'Алдаа гарлаа',
+          message: result.error || 'Хадгалахад алдаа гарлаа.',
+        });
       }
     } catch (err) {
       console.error('Error updating work:', err);
-      alert('Сервертэй холбогдоход алдаа гарлаа');
+      setModal({
+        isOpen: true,
+        type: 'error',
+        title: 'Серверийн алдаа',
+        message: 'Сервертэй холбогдоход алдаа гарлаа.',
+      });
     } finally {
       setSaving(false);
     }
@@ -129,13 +161,16 @@ export default function WorkDetailPage({ params }: { params: Promise<{ id: strin
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 pb-20">
+    <div className="max-w-3xl mx-auto space-y-6 pb-20 relative">
+      {/* Хадгалж байх үед харагдах Loader */}
+      {saving && <Loading />}
+
       {/* Header */}
       <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-slate-100 dark:border-slate-800 shadow-2xs transition-colors">
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => router.push('/dashboard/workshop')}
+            onClick={() => router.back()}
             className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-all cursor-pointer"
           >
             <ArrowLeft size={18} />
@@ -295,10 +330,10 @@ export default function WorkDetailPage({ params }: { params: Promise<{ id: strin
         <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100 dark:border-slate-800">
           <button
             type="button"
-            onClick={() => router.push('/dashboard/workshop')}
+            onClick={() => router.back()}
             className="px-5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition-all cursor-pointer"
           >
-            цуцлах
+            Цуцлах
           </button>
           <button
             type="submit"
@@ -313,6 +348,22 @@ export default function WorkDetailPage({ params }: { params: Promise<{ id: strin
           </button>
         </div>
       </form>
+
+      {/* CommonModal ашиглан хариуг харуулах */}
+      <CommonModal
+        isOpen={modal.isOpen}
+        type={modal.type}
+        title={modal.title}
+        message={modal.message}
+        onClose={() => {
+          setModal(prev => ({ ...prev, isOpen: false }));
+          if (modal.onConfirm) modal.onConfirm();
+        }}
+        onConfirm={() => {
+          setModal(prev => ({ ...prev, isOpen: false }));
+          if (modal.onConfirm) modal.onConfirm();
+        }}
+      />
     </div>
   );
 }

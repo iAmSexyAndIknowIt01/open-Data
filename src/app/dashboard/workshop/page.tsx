@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   Wrench, Plus, Search, Clock, CheckCircle2, 
-  X, LayoutList, LayoutGrid, User, Briefcase, ShieldAlert, RotateCcw 
+  X, LayoutList, LayoutGrid, User, Briefcase, ShieldAlert, RotateCcw, ChevronLeft, ChevronRight 
 } from 'lucide-react';
 import Loading from '@/src/app/components/loading';
 
@@ -32,6 +32,8 @@ interface OptionData {
 
 export default function WorkshopPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [works, setWorks] = useState<WorkItem[]>([]);
   const [options, setOptions] = useState<OptionData>({ individuals: [], companies: [], services: [], employees: [] });
   const [loading, setLoading] = useState(true);
@@ -42,6 +44,13 @@ export default function WorkshopPage() {
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [customerTypeFilter, setCustomerTypeFilter] = useState<string>('all');
   const [employeeFilter, setEmployeeFilter] = useState<string>('all');
+
+  // Pagination states - URL-аас page параметрийг уншиж анхны утгыг оноох
+  const [currentPage, setCurrentPage] = useState(() => {
+    const pageParam = searchParams.get('page');
+    return pageParam ? parseInt(pageParam, 10) || 1 : 1;
+  });
+  const itemsPerPage = 9;
 
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -84,6 +93,22 @@ export default function WorkshopPage() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Шүүлтүүр эсвэл хайлт өөрчлөгдөхөд хуудасны дугаар 1 рүү шилжих бөгөөд URL-ийг мөн шинэчилнэ
+  useEffect(() => {
+    setCurrentPage(1);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('page', '1');
+    router.replace(`?${params.toString()}`, { scroll: false });
+  }, [searchQuery, statusFilter, priorityFilter, customerTypeFilter, employeeFilter]);
+
+  // currentPage өөрчлөгдөх бүрт URL рүү хуудасны дугаарыг хадгалах
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('page', newPage.toString());
+    router.replace(`?${params.toString()}`, { scroll: false });
+  };
 
   const handleServiceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const sId = e.target.value;
@@ -159,6 +184,12 @@ export default function WorkshopPage() {
 
     return matchesSearch && matchesStatus && matchesPriority && matchesCustomerType && matchesEmployee;
   });
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredWorks.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentWorks = filteredWorks.slice(indexOfFirstItem, indexOfLastItem);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -359,7 +390,7 @@ export default function WorkshopPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-300">
-                {filteredWorks.map((work) => (
+                {currentWorks.map((work) => (
                   <tr 
                     key={work.work_id} 
                     onClick={() => router.push(`/dashboard/workshop/${work.work_id}`)}
@@ -410,7 +441,7 @@ export default function WorkshopPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredWorks.map((work) => (
+          {currentWorks.map((work) => (
             <div 
               key={work.work_id} 
               onClick={() => router.push(`/dashboard/workshop/${work.work_id}`)}
@@ -453,6 +484,39 @@ export default function WorkshopPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Pagination Component */}
+      {!loading && totalPages > 1 && (
+        <div className="flex items-center justify-between bg-white dark:bg-slate-900 px-5 py-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-2xs">
+          <div className="text-xs font-medium text-slate-400">
+            Нийт <span className="font-bold text-slate-700 dark:text-slate-200">{filteredWorks.length}</span> өгөгдлөөс <span className="font-bold text-slate-700 dark:text-slate-200">{indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredWorks.length)}</span> хүртэл харуулж байна
+          </div>
+          
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
+              disabled={currentPage === 1}
+              className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+            >
+              <ChevronLeft size={16} />
+            </button>
+
+            <div className="flex items-center gap-1 px-2">
+              <span className="text-xs font-bold text-slate-800 dark:text-white">{currentPage}</span>
+              <span className="text-xs text-slate-400">/</span>
+              <span className="text-xs font-bold text-slate-400">{totalPages}</span>
+            </div>
+
+            <button
+              onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
         </div>
       )}
 
@@ -592,29 +656,26 @@ export default function WorkshopPage() {
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Тайлбар</label>
                 <textarea 
                   rows={3}
-                  placeholder="Ажлын дэлгэрэнгүй тэмдэглэл..."
+                  placeholder="Нэмэлт мэдээлэл..."
                   value={formData.description}
                   onChange={(e) => setFormData({...formData, description: e.target.value})}
                   className="w-full px-3.5 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 resize-none"
                 />
               </div>
 
-              <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4.5 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition-all cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
                 >
                   Цуцлах
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-5.5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-md shadow-blue-500/20 cursor-pointer inline-flex items-center gap-1.5 disabled:opacity-50"
+                  className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/20 disabled:opacity-50 cursor-pointer"
                 >
-                  {saving ? (
-                    <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : null}
                   {saving ? 'Хадгалж байна...' : 'Хадгалах'}
                 </button>
               </div>
