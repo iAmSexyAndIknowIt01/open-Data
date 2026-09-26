@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   Wrench, Plus, Search, Clock, CheckCircle2, 
@@ -30,7 +30,8 @@ interface OptionData {
   employees: { user_id: string; first_name: string; last_name: string; email: string }[];
 }
 
-export default function WorkshopPage() {
+// 1. Үндсэн логик бүхий компонентоо тусад нь салгах (WorkshopContent)
+function WorkshopContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -45,7 +46,7 @@ export default function WorkshopPage() {
   const [customerTypeFilter, setCustomerTypeFilter] = useState<string>('all');
   const [employeeFilter, setEmployeeFilter] = useState<string>('all');
 
-  // Pagination states - URL-аас page параметрийг уншиж анхны утгыг оноох
+  // Pagination states
   const [currentPage, setCurrentPage] = useState(() => {
     const pageParam = searchParams.get('page');
     return pageParam ? parseInt(pageParam, 10) || 1 : 1;
@@ -94,7 +95,6 @@ export default function WorkshopPage() {
     fetchData();
   }, []);
 
-  // Шүүлтүүр эсвэл хайлт өөрчлөгдөхөд хуудасны дугаар 1 рүү шилжих бөгөөд URL-ийг мөн шинэчилнэ
   useEffect(() => {
     setCurrentPage(1);
     const params = new URLSearchParams(searchParams.toString());
@@ -102,7 +102,6 @@ export default function WorkshopPage() {
     router.replace(`?${params.toString()}`, { scroll: false });
   }, [searchQuery, statusFilter, priorityFilter, customerTypeFilter, employeeFilter]);
 
-  // currentPage өөрчлөгдөх бүрт URL рүү хуудасны дугаарыг хадгалах
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
     const params = new URLSearchParams(searchParams.toString());
@@ -185,7 +184,6 @@ export default function WorkshopPage() {
     return matchesSearch && matchesStatus && matchesPriority && matchesCustomerType && matchesEmployee;
   });
 
-  // Pagination logic
   const totalPages = Math.ceil(filteredWorks.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -278,7 +276,6 @@ export default function WorkshopPage() {
           </div>
         </div>
 
-        {/* Dropdown Filters Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Төлөв</label>
@@ -594,12 +591,25 @@ export default function WorkshopPage() {
                     <option value="">-- Үйлчилгээ сонгох --</option>
                     {options.services.map(ser => (
                       <option key={ser.service_id} value={ser.service_id}>
-                        {ser.name} ({Number(ser.price).toLocaleString()} ₮)
+                        {ser.name}
                       </option>
                     ))}
                   </select>
                 </div>
 
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Үнэ (₮)</label>
+                  <input 
+                    type="number"
+                    value={formData.price}
+                    onChange={(e) => setFormData({...formData, price: e.target.value})}
+                    placeholder="Үнийн дүн..."
+                    className="w-full px-3.5 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Хариуцсан ажилтан</label>
                   <select
@@ -607,7 +617,7 @@ export default function WorkshopPage() {
                     onChange={(e) => setFormData({...formData, assigned_employee: e.target.value})}
                     className="w-full px-3.5 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 bg-white dark:bg-slate-800 cursor-pointer"
                   >
-                    <option value="">-- Ажилтан сонгох --</option>
+                    <option value="">-- Сонгох --</option>
                     {options.employees.map(emp => (
                       <option key={emp.user_id} value={emp.user_id}>
                         {emp.last_name} {emp.first_name}
@@ -615,67 +625,34 @@ export default function WorkshopPage() {
                     ))}
                   </select>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Үнэ (₮)</label>
+                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Дуусах хугацаа</label>
                   <input 
-                    type="number"
-                    placeholder="0"
-                    value={formData.price}
-                    onChange={(e) => setFormData({...formData, price: e.target.value})}
+                    type="date"
+                    value={formData.due_date}
+                    onChange={(e) => setFormData({...formData, due_date: e.target.value})}
                     className="w-full px-3.5 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500"
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Зэрэглэл</label>
-                  <select
-                    value={formData.priority}
-                    onChange={(e) => setFormData({...formData, priority: e.target.value})}
-                    className="w-full px-3.5 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 bg-white dark:bg-slate-800 cursor-pointer"
-                  >
-                    <option value="low">Энгийн</option>
-                    <option value="medium">Дунд</option>
-                    <option value="high">Яаралтай</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Дуусах хугацаа</label>
-                <input 
-                  type="date"
-                  value={formData.due_date}
-                  onChange={(e) => setFormData({...formData, due_date: e.target.value})}
-                  className="w-full px-3.5 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500"
-                />
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Тайлбар</label>
-                <textarea 
-                  rows={3}
-                  placeholder="Нэмэлт мэдээлэл..."
+                <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  className="w-full px-3.5 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 resize-none"
-                />
+                  placeholder="Ажлын дэлгэрэнгүй мэдээлэл..."
+                  className="w-full px-3.5 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500"
+                  rows={3}
+                ></textarea>
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
-                >
+                <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer">
                   Цуцлах
                 </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/20 disabled:opacity-50 cursor-pointer"
-                >
+                <button type="submit" disabled={saving} className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 transition-all cursor-pointer">
                   {saving ? 'Хадгалж байна...' : 'Хадгалах'}
                 </button>
               </div>
@@ -684,5 +661,18 @@ export default function WorkshopPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// 2. Үндсэн хуудсыг Suspense дотор экспортлох (Build error гаргахгүй)
+export default function WorkshopPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen w-full items-center justify-center p-10">
+        <Loading />
+      </div>
+    }>
+      <WorkshopContent />
+    </Suspense>
   );
 }
