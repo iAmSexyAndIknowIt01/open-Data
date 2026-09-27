@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { LayoutDashboard, Database, Settings, LogOut, User, BarChart3, ChevronDown, Menu, X, FileText, Users, UserCheck, Briefcase, Wrench, Sun, Moon } from 'lucide-react';
+import { LayoutDashboard, Database, Settings, LogOut, User, BarChart3, ChevronDown, Menu, X, FileText, Users, UserCheck, Briefcase, Wrench, CalendarCheck, Sun, Moon } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -65,6 +65,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/dashboard', icon: LayoutDashboard, label: 'Удирдлага' },
     { href: '/dashboard/data', icon: Database, label: 'Өгөгдөл', adminOnly: true },
     { href: '/dashboard/customers', icon: UserCheck, label: 'Харилцагч' },
+    { href: '/dashboard/reservations', icon: CalendarCheck, label: 'Захиалга' },
     { href: '/dashboard/workshop', icon: Wrench, label: 'Ажил' },
     { href: '/dashboard/analytics', icon: BarChart3, label: 'Аналитик' },
   ].filter((item) => !item.adminOnly || isAdmin);
