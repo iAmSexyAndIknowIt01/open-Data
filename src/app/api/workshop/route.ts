@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { getSession } from '@/src/lib/session';
 import { pool } from '@/src/lib/db';
 
 // GET: Тухайн компанийн ажлуудын жагсаалт болон холбогдох сонголтын датаг татах
 export async function GET(request: Request) {
   try {
-    const cookieStore = cookies();
-    const companyId = (await cookieStore).get('company_id')?.value;
+    const session = await getSession();
+    const companyId = session?.companyId;
 
     if (!companyId) {
       return NextResponse.json(
@@ -84,8 +84,8 @@ export async function GET(request: Request) {
 // POST: Шинэ ажил бүртгэх
 export async function POST(request: Request) {
   try {
-    const cookieStore = cookies();
-    const companyId = (await cookieStore).get('company_id')?.value;
+    const session = await getSession();
+    const companyId = session?.companyId;
 
     if (!companyId) {
       return NextResponse.json(

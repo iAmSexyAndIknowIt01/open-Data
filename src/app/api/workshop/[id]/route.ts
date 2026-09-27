@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { getSession } from '@/src/lib/session';
 import { pool } from '@/src/lib/db';
 
 // GET: Тухайн ажлын дэлгэрэнгүй мэдээллийг авах
@@ -8,8 +8,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const cookieStore = cookies();
-    const companyId = (await cookieStore).get('company_id')?.value;
+    const session = await getSession();
+    const companyId = session?.companyId;
 
     if (!companyId) {
       return NextResponse.json(
@@ -63,8 +63,8 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const cookieStore = cookies();
-    const companyId = (await cookieStore).get('company_id')?.value;
+    const session = await getSession();
+    const companyId = session?.companyId;
 
     if (!companyId) {
       return NextResponse.json(

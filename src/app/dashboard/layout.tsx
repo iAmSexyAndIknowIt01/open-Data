@@ -103,8 +103,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleLogout = () => {
-    router.push('/login');
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (err) {
+      console.error('Logout failed:', err);
+    }
+    router.replace('/login');
+    router.refresh();
   };
 
   // Овог нэрийн эхний үсгийг гаргах

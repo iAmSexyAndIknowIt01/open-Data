@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { getSession } from '@/src/lib/session';
 import { pool } from '@/src/lib/db';
 
 export async function GET(
@@ -9,8 +9,8 @@ export async function GET(
   try {
     const resolvedParams = await params;
     const customerId = resolvedParams.id;
-    const cookieStore = cookies();
-    const companyId = (await cookieStore).get('company_id')?.value;
+    const session = await getSession();
+    const companyId = session?.companyId;
 
     if (!companyId) {
       return NextResponse.json(
@@ -90,8 +90,8 @@ export async function PUT(
   try {
     const resolvedParams = await params;
     const customerId = resolvedParams.id;
-    const cookieStore = cookies();
-    const companyId = (await cookieStore).get('company_id')?.value;
+    const session = await getSession();
+    const companyId = session?.companyId;
 
     if (!companyId) {
       return NextResponse.json(

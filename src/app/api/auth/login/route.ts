@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { compare } from 'bcrypt';
-import { cookies } from 'next/headers';
 import { pool } from '../../../../lib/db'; // Таны өөрийн db холболтын файл
+import { createSession } from '../../../../lib/session';
 
 export async function POST(request: Request) {
   try {
@@ -41,40 +41,22 @@ export async function POST(request: Request) {
       );
     }
 
-    // 4. user_id, company_id болон role-ийг тус тус Cookie-д хадгалах
-    const cookieStore = cookies();
-    
-    (await cookieStore).set({
-      name: 'user_id',
-      value: String(user.user_id),
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 7, // 7 хоног
-      sameSite: 'strict',
+    // 4. Идэвхгүй болгосон хэрэглэгчийг нэвтрүүлэхгүй
+    if (user.is_active === false) {
+      return NextResponse.json(
+        { error: 'Таны бүртгэл идэвхгүй болсон байна. Админд хандана уу.' },
+        { status: 403 }
+      );
+    }
+
+    // 5. user_id, company_id, role-ийг гарын үсэгтэй session cookie-д хадгалах
+    await createSession({
+      userId: String(user.user_id),
+      companyId: String(user.company_id),
+      role: String(user.role ?? ''),
     });
 
-    (await cookieStore).set({
-      name: 'company_id',
-      value: String(user.company_id),
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 7, // 7 хоног
-      sameSite: 'strict',
-    });
-
-    (await cookieStore).set({
-      name: 'role',
-      value: String(user.role),
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 7, // 7 хоног
-      sameSite: 'strict',
-    });
-
-    // 5. Амжилттай нэвтэрсэн үед хэрэглэгчийн мэдээллийг буцаах
+    // 6. Амжилттай нэвтэрсэн үед хэрэглэгчийн мэдээллийг буцаах
     return NextResponse.json(
       {
         message: 'Амжилттай нэвтэрлээ.',

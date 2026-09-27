@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { getSession } from '@/src/lib/session';
 import { pool } from '@/src/lib/db'; // Төслийн файлын бүтцээс хамаарч замыг шалгана уу
 
 export async function GET() {
   try {
-    const cookieStore = cookies();
-    const userId = (await cookieStore).get('user_id')?.value;
+    const session = await getSession();
+    const userId = session?.userId;
 
     if (!userId) {
       return NextResponse.json(

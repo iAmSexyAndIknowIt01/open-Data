@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { getSession } from '@/src/lib/session';
 import { hash, compare } from 'bcrypt';
 import { pool } from '../../../lib/db';
 
 // 1. Хэрэглэгчийн мэдээллийг авах GET метод
 export async function GET() {
   try {
-    const cookieStore = cookies();
-    const userId = (await cookieStore).get('user_id')?.value;
+    const session = await getSession();
+    const userId = session?.userId;
 
     if (!userId) {
       return NextResponse.json(
@@ -59,8 +59,8 @@ export async function GET() {
 // 2. Хэрэглэгчийн мэдээлэл болон нууц үг шинэчлэх PUT метод
 export async function PUT(request: Request) {
   try {
-    const cookieStore = cookies();
-    const userId = (await cookieStore).get('user_id')?.value;
+    const session = await getSession();
+    const userId = session?.userId;
 
     if (!userId) {
       return NextResponse.json(

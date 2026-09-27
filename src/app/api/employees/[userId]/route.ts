@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { pool } from '@/src/lib/db';
+import { getSession } from '@/src/lib/session';
 
 // Мэдээлэл авах (GET)
 export async function GET(
@@ -7,6 +8,14 @@ export async function GET(
   { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: 'Нэвтрээгүй байна.' },
+        { status: 401 }
+      );
+    }
+
     const { userId } = await params;
 
     if (!userId || userId === 'undefined') {
@@ -34,10 +43,11 @@ export async function GET(
         c.company_name
       FROM mt_user u
       LEFT JOIN mt_company c ON u.company_id = c.company_id
-      WHERE u.user_id = $1
+      WHERE u.user_id = $1 AND u.company_id = $2
     `;
 
-    const result = await pool.query(query, [userId]);
+    // Зөвхөн өөрийн компанийн ажилтны мэдээллийг харуулна
+    const result = await pool.query(query, [userId, session.companyId]);
 
     if (result.rows.length === 0) {
       return NextResponse.json(
@@ -66,6 +76,14 @@ export async function POST(
   { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: 'Нэвтрээгүй байна.' },
+        { status: 401 }
+      );
+    }
+
     const { userId } = await params;
     const body = await request.json();
 
@@ -101,8 +119,8 @@ export async function POST(
         role = $8,
         position = $9,
         update_date = CURRENT_TIMESTAMP
-      WHERE user_id = $10
-      RETURNING *;
+      WHERE user_id = $10 AND company_id = $11
+      RETURNING user_id;
     `;
 
     const values = [
@@ -115,7 +133,8 @@ export async function POST(
       is_active,
       role,
       position,
-      userId
+      userId,
+      session.companyId
     ];
 
     const updateResult = await pool.query(updateQuery, values);
@@ -129,8 +148,20 @@ export async function POST(
 
     // Компанийн нэрийг хамт буцаахын тулд дахин company join хийж авна
     const detailQuery = `
-      SELECT 
-        u.*,
+      SELECT
+        u.user_id,
+        u.company_id,
+        u.email,
+        u.first_name,
+        u.last_name,
+        u.male,
+        u.phone,
+        u.address,
+        u.is_active,
+        u.create_date,
+        u.update_date,
+        u.role,
+        u.position,
         c.company_name
       FROM mt_user u
       LEFT JOIN mt_company c ON u.company_id = c.company_id
