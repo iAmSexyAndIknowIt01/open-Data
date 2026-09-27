@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   Wrench, Plus, Search, Clock, CheckCircle2, 
@@ -39,12 +39,12 @@ function WorkshopContent() {
   const [options, setOptions] = useState<OptionData>({ individuals: [], companies: [], services: [], employees: [] });
   const [loading, setLoading] = useState(true);
   
-  // Filter states
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [priorityFilter, setPriorityFilter] = useState<string>('all');
-  const [customerTypeFilter, setCustomerTypeFilter] = useState<string>('all');
-  const [employeeFilter, setEmployeeFilter] = useState<string>('all');
+  // Filter states (URL-аас эхлүүлнэ, ингэснээр дэлгэрэнгүй хуудаснаас буцахад хадгалагдана)
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q') || '');
+  const [statusFilter, setStatusFilter] = useState<string>(() => searchParams.get('status') || 'all');
+  const [priorityFilter, setPriorityFilter] = useState<string>(() => searchParams.get('priority') || 'all');
+  const [customerTypeFilter, setCustomerTypeFilter] = useState<string>(() => searchParams.get('customerType') || 'all');
+  const [employeeFilter, setEmployeeFilter] = useState<string>(() => searchParams.get('employee') || 'all');
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(() => {
@@ -95,18 +95,34 @@ function WorkshopContent() {
     fetchData();
   }, []);
 
+  // Шүүлтүүр болон хуудасны төлөвийг URL-тай синк хийх.
+  // Хуудсыг зөвхөн шүүлтүүр бодитоор өөрчлөгдсөн үед 1 болгоно (mount үед биш).
+  const filterKey = JSON.stringify([searchQuery, statusFilter, priorityFilter, customerTypeFilter, employeeFilter]);
+  const prevFilterKey = useRef(filterKey);
+
   useEffect(() => {
-    setCurrentPage(1);
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('page', '1');
-    router.replace(`?${params.toString()}`, { scroll: false });
-  }, [searchQuery, statusFilter, priorityFilter, customerTypeFilter, employeeFilter]);
+    const filtersChanged = prevFilterKey.current !== filterKey;
+    prevFilterKey.current = filterKey;
+
+    const page = filtersChanged ? 1 : currentPage;
+    if (filtersChanged) setCurrentPage(1);
+
+    const params = new URLSearchParams();
+    if (searchQuery) params.set('q', searchQuery);
+    if (statusFilter !== 'all') params.set('status', statusFilter);
+    if (priorityFilter !== 'all') params.set('priority', priorityFilter);
+    if (customerTypeFilter !== 'all') params.set('customerType', customerTypeFilter);
+    if (employeeFilter !== 'all') params.set('employee', employeeFilter);
+    if (page > 1) params.set('page', page.toString());
+
+    const query = params.toString();
+    if (query !== searchParams.toString()) {
+      router.replace(`/dashboard/workshop${query ? `?${query}` : ''}`, { scroll: false });
+    }
+  }, [filterKey, currentPage]);
 
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('page', newPage.toString());
-    router.replace(`?${params.toString()}`, { scroll: false });
   };
 
   const handleServiceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
