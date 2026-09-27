@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/src/lib/session';
 import { pool } from '@/src/lib/db';
+import { validateWorkInput } from '@/src/lib/works';
 
 // GET: Тухайн компанийн ажлуудын жагсаалт болон холбогдох сонголтын датаг татах
 export async function GET(request: Request) {
@@ -95,6 +96,8 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
+    // Хуучин өгөгдөлд "COMPANY" гэх мэт том үсгээр хадгалагдсан утга байдаг тул жижиг үсэг болгоно
+    if (typeof body.customer_type === 'string') body.customer_type = body.customer_type.toLowerCase();
     const { 
       title, 
       customer_type, 
@@ -113,6 +116,11 @@ export async function POST(request: Request) {
         { success: false, error: 'Ажлын гарчиг болон харилцагчийн төрлийг оруулна уу.' },
         { status: 400 }
       );
+    }
+
+    const inputError = await validateWorkInput(companyId, body);
+    if (inputError) {
+      return NextResponse.json({ success: false, error: inputError }, { status: 400 });
     }
 
     let indCustomerId = null;

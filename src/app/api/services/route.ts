@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSession } from '@/src/lib/session';
+import { getSession, requireAuth } from '@/src/lib/session';
 import { pool } from '@/src/lib/db';
 
 // GET: Тухайн компанийн үйлчилгээний жагсаалтыг татах
@@ -46,15 +46,10 @@ export async function GET() {
 // POST: Шинэ үйлчилгээ бүртгэх
 export async function POST(request: Request) {
   try {
-    const session = await getSession();
-    const companyId = session?.companyId;
-
-    if (!companyId) {
-      return NextResponse.json(
-        { success: false, error: 'Нэвтрээгүй байна. (Auth required)' },
-        { status: 401 }
-      );
-    }
+    // Үйлчилгээний жагсаалт, үнийг зөвхөн админ өөрчилнө
+    const { session, error: authError } = await requireAuth({ admin: true });
+    if (authError) return authError;
+    const companyId = session.companyId;
 
     const body = await request.json();
     const { name, category, price, duration, description } = body;

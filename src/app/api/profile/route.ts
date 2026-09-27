@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/src/lib/session';
+import { validatePassword } from '@/src/lib/password';
+import { checkRateLimits } from '@/src/lib/rate-limit';
 import { hash, compare } from 'bcrypt';
 import { pool } from '../../../lib/db';
 
@@ -80,6 +82,17 @@ export async function PUT(request: Request) {
           { status: 400 }
         );
       }
+
+      const passwordError = validatePassword(newPassword);
+      if (passwordError) {
+        return NextResponse.json({ success: false, error: passwordError }, { status: 400 });
+      }
+
+      // Хуучин нууц үгийг таах оролдлогыг хязгаарлах
+      const limited = await checkRateLimits([
+        { key: `profile-password:user:${userId}`, limit: 5, windowSeconds: 15 * 60 },
+      ]);
+      if (limited) return limited;
 
       const userResult = await pool.query(
         'SELECT password_hash FROM mt_user WHERE user_id = $1',

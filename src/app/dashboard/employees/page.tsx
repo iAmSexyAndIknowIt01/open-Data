@@ -38,14 +38,14 @@ export default function EmployeesPage() {
     email: '',
     password: '',
     phone: '',
-    role: 'user', 
+    role: 'employee', 
     address: '',
     male: '',
   });
 
   const [users, setUsers] = useState<User[]>([]);
 
-  const roles = ['Бүгд', 'Админ', 'Ажилтан', 'Менежер'];
+  const roles = ['Бүгд', 'Админ', 'Ажилтан'];
 
   const fetchUsers = async () => {
     try {
@@ -76,10 +76,9 @@ export default function EmployeesPage() {
     
     let matchesRole = selectedRole === 'Бүгд';
     if (!matchesRole) {
-      const targetRole = user.role?.toLowerCase();
-      if (selectedRole === 'Админ' && targetRole === 'admin') matchesRole = true;
-      if (selectedRole === 'Менежер' && targetRole === 'manager') matchesRole = true;
-      if (selectedRole === 'Ажилтан' && (targetRole === 'user' || targetRole === 'ажилтан')) matchesRole = true;
+      const isAdminRole = user.role?.toLowerCase() === 'admin';
+      if (selectedRole === 'Админ' && isAdminRole) matchesRole = true;
+      if (selectedRole === 'Ажилтан' && !isAdminRole) matchesRole = true;
     }
 
     return matchesSearch && matchesRole;
@@ -106,7 +105,7 @@ export default function EmployeesPage() {
           email: '', 
           password: '', 
           phone: '', 
-          role: 'user', 
+          role: 'employee', 
           address: '', 
           male: '' 
         });
@@ -122,15 +121,7 @@ export default function EmployeesPage() {
     }
   };
 
-  const getRoleDisplayName = (role: string) => {
-    switch (role?.toLowerCase()) {
-      case 'admin': return 'Админ';
-      case 'manager': return 'Менежер';
-      case 'user': 
-      case 'ажилтан': return 'Ажилтан';
-      default: return role || 'Ажилтан';
-    }
-  };
+  const getRoleDisplayName = (role: string) => (role?.toLowerCase() === 'admin' ? 'Админ' : 'Ажилтан');
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8 pb-24 font-sans antialiased text-slate-800 dark:text-slate-100 px-4 sm:px-6">
@@ -330,9 +321,13 @@ export default function EmployeesPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Нууц үг</label>
-                  <input 
-                    type="password" 
+                  <input
+                    type="password"
                     placeholder="••••••••"
+                    required
+                    minLength={8}
+                    autoComplete="new-password"
+                    title="Хамгийн багадаа 8 тэмдэгт, үсэг болон тоо агуулсан"
                     value={newUser.password}
                     onChange={(e) => setNewUser({...newUser, password: e.target.value})}
                     className="w-full px-4 py-3 rounded-2xl bg-slate-50/80 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-800 dark:text-slate-100 focus:outline-hidden focus:border-blue-500 dark:focus:border-blue-400 focus:bg-white dark:focus:bg-slate-800 transition-all"
@@ -368,8 +363,7 @@ export default function EmployeesPage() {
                   onChange={(e) => setNewUser({...newUser, role: e.target.value})}
                   className="w-full px-4 py-3 rounded-2xl bg-slate-50/80 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-800 dark:text-slate-100 focus:outline-hidden focus:border-blue-500 dark:focus:border-blue-400 focus:bg-white dark:focus:bg-slate-800 transition-all cursor-pointer"
                 >
-                  <option value="user">Ажилтан</option>
-                  <option value="manager">Менежер</option>
+                  <option value="employee">Ажилтан</option>
                   <option value="admin">Админ</option>
                 </select>
               </div>

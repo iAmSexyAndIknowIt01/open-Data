@@ -1,118 +1,65 @@
 import { NextResponse } from 'next/server';
-import { getSession } from '@/src/lib/session';
-import { compare, hash } from 'bcrypt';
-import { pool } from '../../../lib/db'; // Таны өөрийн db холболтын файл
+import { requireAuth } from '@/src/lib/session';
+import { pool } from '@/src/lib/db';
 
-// GET: Cookie-гээс company_id авч mt_company хүснэгтээс мэдээлэл татах
+// GET: Компанийн мэдээлэл (бүх ажилтан харна)
 export async function GET() {
   try {
-    const session = await getSession();
-    const companyId = session?.companyId;
+    const { session, error: authError } = await requireAuth();
+    if (authError) return authError;
 
-    if (!companyId) {
-      return NextResponse.json(
-        { success: false, error: 'Нэвтрээгүй байна. (Auth required)' },
-        { status: 401 }
-      );
-    }
-
-    const query = `
-      SELECT company_id, company_name, owner_name, email, phone_number, address 
-      FROM mt_company 
-      WHERE company_id = $1
-    `;
-    const { rows } = await pool.query(query, [companyId]);
+    const { rows } = await pool.query(
+      `SELECT company_id, company_name, email, phone_number, address, subscription_status, created_at
+       FROM mt_company
+       WHERE company_id = $1`,
+      [session.companyId]
+    );
 
     if (rows.length === 0) {
-      return NextResponse.json(
-        { success: false, error: 'Компанийн мэдээлэл олдсонгүй.' },
-        { status: 404 }
-      );
+      return NextResponse.json({ success: false, error: 'Компани олдсонгүй.' }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, data: rows[0] });
+    return NextResponse.json({ success: true, data: rows[0], canEdit: session.role === 'admin' });
   } catch (error) {
     console.error('Fetch Company Error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Мэдээлэл авахад алдаа гарлаа' },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: 'Мэдээлэл авахад алдаа гарлаа' }, { status: 500 });
   }
 }
 
-// PUT: Компанийн мэдээлэл болон нууц үг шинэчлэх
+// PUT: Компанийн мэдээлэл шинэчлэх (зөвхөн админ).
+// Нууц үг хэрэглэгч бүрт тусдаа тул "Профайл" хуудаснаас солино.
 export async function PUT(request: Request) {
   try {
-    const session = await getSession();
-    const companyId = session?.companyId;
-
-    if (!companyId) {
-      return NextResponse.json(
-        { success: false, error: 'Нэвтрээгүй байна. (Auth required)' },
-        { status: 401 }
-      );
-    }
+    const { session, error: authError } = await requireAuth({ admin: true });
+    if (authError) return authError;
 
     const body = await request.json();
-    const { companyName, ownerName, email, currentPassword, newPassword, phoneNumber, address } = body;
+    const text = (value: unknown, max: number) =>
+      typeof value === 'string' ? value.trim().slice(0, max) : '';
 
-    // Хэрэв нууц үг солих гэж байгаа бол хуучин нууц үгийг шалгах
-    if (newPassword) {
-      if (!currentPassword) {
-        return NextResponse.json(
-          { success: false, error: 'Шинэ нууц үг оруулахын тулд хуучин нууц үгээ бичнэ үү.' },
-          { status: 400 }
-        );
-      }
+    const companyName = text(body.companyName, 200);
+    const email = text(body.email, 200).toLowerCase();
+    const phoneNumber = text(body.phoneNumber, 50);
+    const address = text(body.address, 500);
 
-      // Тухайн компанийн одоогийн нууц үгийн хешийг авах
-      const companyResult = await pool.query(
-        'SELECT password_hash FROM mt_company WHERE company_id = $1',
-        [companyId]
-      );
-
-      if (companyResult.rows.length === 0) {
-        return NextResponse.json(
-          { success: false, error: 'Компани олдсонгүй.' },
-          { status: 404 }
-        );
-      }
-
-      const isValidPassword = await compare(currentPassword, companyResult.rows[0].password_hash);
-      if (!isValidPassword) {
-        return NextResponse.json(
-          { success: false, error: 'О оруулсан хуучин нууц үг буруу байна.' },
-          { status: 400 }
-        );
-      }
-
-      // Шинэ нууц үгийг hash хийх
-      const newPasswordHash = await hash(newPassword, 10);
-
-      // Нууц үгтэй хамт шинэчлэх query
-      const updateWithPasswordQuery = `
-        UPDATE mt_company 
-        SET company_name = $1, owner_name = $2, email = $3, phone_number = $4, address = $5, password_hash = $6, updated_at = CURRENT_TIMESTAMP
-        WHERE company_id = $7
-      `;
-      await pool.query(updateWithPasswordQuery, [companyName, ownerName, email, phoneNumber, address, newPasswordHash, companyId]);
-
-    } else {
-      // Зөвхөн үндсэн мэдээлэл шинэчлэх query
-      const updateQuery = `
-        UPDATE mt_company 
-        SET company_name = $1, owner_name = $2, email = $3, phone_number = $4, address = $5, updated_at = CURRENT_TIMESTAMP
-        WHERE company_id = $6
-      `;
-      await pool.query(updateQuery, [companyName, ownerName, email, phoneNumber, address, companyId]);
+    if (!companyName) {
+      return NextResponse.json({ success: false, error: 'Компанийн нэрийг оруулна уу.' }, { status: 400 });
+    }
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return NextResponse.json({ success: false, error: 'Имэйл хаяг буруу байна.' }, { status: 400 });
     }
 
-    return NextResponse.json({ success: true, message: 'Мэдээлэл амжилттай шинэчлэгдлээ' });
+    const { rows } = await pool.query(
+      `UPDATE mt_company
+       SET company_name = $1, email = $2, phone_number = $3, address = $4, updated_at = CURRENT_TIMESTAMP
+       WHERE company_id = $5
+       RETURNING company_id, company_name, email, phone_number, address, subscription_status, created_at`,
+      [companyName, email || null, phoneNumber || null, address || null, session.companyId]
+    );
+
+    return NextResponse.json({ success: true, data: rows[0], message: 'Мэдээлэл амжилттай шинэчлэгдлээ' });
   } catch (error) {
     console.error('Update Company Error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Хадгалахад алдаа гарлаа' },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: 'Хадгалахад алдаа гарлаа' }, { status: 500 });
   }
 }
