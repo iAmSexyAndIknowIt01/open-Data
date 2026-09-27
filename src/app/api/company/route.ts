@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { getSession } from '@/src/lib/session';
 import { compare, hash } from 'bcrypt';
 import { pool } from '../../../lib/db'; // Таны өөрийн db холболтын файл
 
 // GET: Cookie-гээс company_id авч mt_company хүснэгтээс мэдээлэл татах
 export async function GET() {
   try {
-    const cookieStore = cookies();
-    const companyId = (await cookieStore).get('company_id')?.value;
+    const session = await getSession();
+    const companyId = session?.companyId;
 
     if (!companyId) {
       return NextResponse.json(
@@ -43,8 +43,8 @@ export async function GET() {
 // PUT: Компанийн мэдээлэл болон нууц үг шинэчлэх
 export async function PUT(request: Request) {
   try {
-    const cookieStore = cookies();
-    const companyId = (await cookieStore).get('company_id')?.value;
+    const session = await getSession();
+    const companyId = session?.companyId;
 
     if (!companyId) {
       return NextResponse.json(

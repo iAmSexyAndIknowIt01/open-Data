@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { getSession } from '@/src/lib/session';
 import { pool } from '@/src/lib/db'; // Замын дагуу тохируулна уу
 
 export async function GET() {
   try {
-    const cookieStore = cookies();
-    const companyId = (await cookieStore).get('company_id')?.value;
+    const session = await getSession();
+    const companyId = session?.companyId;
 
     if (!companyId) {
       return NextResponse.json(

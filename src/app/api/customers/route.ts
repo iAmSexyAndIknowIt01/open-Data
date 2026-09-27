@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { getSession } from '@/src/lib/session';
 import { pool } from '@/src/lib/db'; // Таны өөрийн db холболтын файл
 
 // GET: Тухайн компанийн харилцагчдыг төрлөөр нь эсвэл бүгдийг нь татах
 export async function GET(request: Request) {
   try {
-    const cookieStore = cookies();
-    const companyId = (await cookieStore).get('company_id')?.value;
+    const session = await getSession();
+    const companyId = session?.companyId;
 
     if (!companyId) {
       return NextResponse.json(
@@ -79,8 +79,8 @@ export async function GET(request: Request) {
 // POST: Харилцагчийн төрлөөс хамааран mt_customer эсвэл mt_customerCompany рүү хадгалах
 export async function POST(request: Request) {
   try {
-    const cookieStore = cookies();
-    const companyId = (await cookieStore).get('company_id')?.value;
+    const session = await getSession();
+    const companyId = session?.companyId;
 
     if (!companyId) {
       return NextResponse.json(

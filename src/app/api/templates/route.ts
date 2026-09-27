@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { getSession } from '@/src/lib/session';
 import { pool } from '../../../lib/db'; // Төслийн замын дагуу тохируулна уу
 
 // 1. Тухайн компанийн идэвхтэй (is_active = true) анкетын тохиргоог авах GET метод
 export async function GET() {
   try {
-    const cookieStore = cookies();
-    const userId = (await cookieStore).get('user_id')?.value;
+    const session = await getSession();
+    const userId = session?.userId;
 
     if (!userId) {
       return NextResponse.json(
@@ -63,8 +63,8 @@ export async function GET() {
 export async function POST(request: Request) {
   const client = await pool.connect(); // Transaction ашиглах нь илүү найдвартай
   try {
-    const cookieStore = cookies();
-    const userId = (await cookieStore).get('user_id')?.value;
+    const session = await getSession();
+    const userId = session?.userId;
 
     if (!userId) {
       return NextResponse.json(

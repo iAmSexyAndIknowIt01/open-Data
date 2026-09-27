@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { getSession } from '@/src/lib/session';
 import { pool } from '../../../lib/db';
 import bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
@@ -7,9 +7,9 @@ import { randomUUID } from 'crypto';
 // 1. GET метод: Компанийн бүх хэрэглэгчдийг авах
 export async function GET() {
   try {
-    const cookieStore = await cookies();
-    const userId = cookieStore.get('user_id')?.value;
-    const companyId = cookieStore.get('company_id')?.value;
+    const session = await getSession();
+    const userId = session?.userId;
+    const companyId = session?.companyId;
 
     if (!userId || !companyId) {
       return NextResponse.json(
@@ -55,9 +55,9 @@ export async function GET() {
 // 2. POST метод: Шинэ хэрэглэгч бүртгэх
 export async function POST(request: Request) {
   try {
-    const cookieStore = await cookies();
-    const currentUserId = cookieStore.get('user_id')?.value;
-    const companyId = cookieStore.get('company_id')?.value;
+    const session = await getSession();
+    const currentUserId = session?.userId;
+    const companyId = session?.companyId;
 
     if (!currentUserId || !companyId) {
       return NextResponse.json(
