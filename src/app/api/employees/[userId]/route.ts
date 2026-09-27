@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { pool } from '@/src/lib/db';
-import { getSession } from '@/src/lib/session';
+import { getSession, normalizeRole, requireAuth } from '@/src/lib/session';
 
 // Мэдээлэл авах (GET)
 export async function GET(
@@ -76,13 +76,9 @@ export async function POST(
   { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json(
-        { success: false, error: 'Нэвтрээгүй байна.' },
-        { status: 401 }
-      );
-    }
+    // Бусдын мэдээлэл, эрх, идэвхтэй эсэхийг зөвхөн админ өөрчилнө (өөрийн мэдээллийг /api/profile-аар)
+    const { session, error: authError } = await requireAuth({ admin: true });
+    if (authError) return authError;
 
     const { userId } = await params;
     const body = await request.json();
@@ -95,16 +91,24 @@ export async function POST(
     }
 
     const {
-      email,
       first_name,
       last_name,
       male,
       phone,
       address,
-      is_active,
-      role,
       position
     } = body;
+    const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : body.email;
+    const role = normalizeRole(body.role);
+    const is_active = body.is_active !== false && body.is_active !== 'false';
+
+    // Админ өөрийгөө идэвхгүй болгох эсвэл эрхээ хасаж, компанид админгүй болгохоос сэргийлнэ
+    if (userId === session.userId && (role !== 'admin' || !is_active)) {
+      return NextResponse.json(
+        { success: false, error: 'Өөрийн админ эрхийг хасах эсвэл өөрийгөө идэвхгүй болгох боломжгүй.' },
+        { status: 400 }
+      );
+    }
 
     const updateQuery = `
       UPDATE mt_user 
@@ -174,12 +178,17 @@ export async function POST(
       data: finalResult.rows[0],
     });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Update User Error:', error);
+    // DB-ийн алдааны дэлгэрэнгүйг клиент рүү гаргахгүй; зөвхөн давхцсан имэйлийг тайлбарлана
+    const isDuplicateEmail =
+      typeof error === 'object' && error !== null && 'code' in error && (error as { code?: string }).code === '23505';
     return NextResponse.json(
-      { success: false, error: error.message || 'Серверт алдаа гарлаа.' },
-      { status: 500 }
+      {
+        success: false,
+        error: isDuplicateEmail ? 'Энэ имэйл хаяг аль хэдийн бүртгэгдсэн байна.' : 'Серверт алдаа гарлаа.',
+      },
+      { status: isDuplicateEmail ? 400 : 500 }
     );
   }
 }

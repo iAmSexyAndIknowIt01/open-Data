@@ -2,13 +2,16 @@ import { NextResponse } from 'next/server';
 import { hash } from 'bcrypt';
 import crypto from 'crypto';
 import { pool } from '../../../../lib/db';
+import { validatePassword } from '../../../../lib/password';
+import { checkRateLimits, getClientIp } from '../../../../lib/rate-limit';
 
 export async function POST(request: Request) {
   const client = await pool.connect();
 
   try {
     const body = await request.json();
-    const { companyName, lastName, firstName, email, password } = body;
+    const { companyName, lastName, firstName, password } = body;
+    const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
 
     // 1. Оролтын өгөгдлийг шалгах
     if (!companyName || !lastName || !firstName || !email || !password) {
@@ -17,10 +20,23 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return NextResponse.json({ error: 'Имэйл хаяг буруу байна.' }, { status: 400 });
+    }
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      return NextResponse.json({ error: passwordError }, { status: 400 });
+    }
+
+    // Олноор бүртгэл үүсгэхээс сэргийлэх: нэг IP-ээс цагт 5
+    const limited = await checkRateLimits([
+      { key: `register:ip:${getClientIp(request)}`, limit: 5, windowSeconds: 60 * 60 },
+    ]);
+    if (limited) return limited;
 
     // 2. Имэйл mt_user хүснэгтэд бүртгэлтэй эсэхийг шалгах
     const userExists = await client.query(
-      'SELECT * FROM mt_user WHERE email = $1',
+      'SELECT 1 FROM mt_user WHERE LOWER(email) = $1',
       [email]
     );
 
@@ -48,8 +64,8 @@ export async function POST(request: Request) {
 
     // 4. mt_company хүснэгт рүү компанийн мэдээллийг хадгалах
     await client.query(
-      `INSERT INTO mt_company (company_id, company_name) VALUES ($1, $2)`,
-      [companyId, companyName]
+      `INSERT INTO mt_company (company_id, company_name, email) VALUES ($1, $2, $3)`,
+      [companyId, companyName, email]
     );
 
     // 5. Үл давхцах random user_id үүсгэх

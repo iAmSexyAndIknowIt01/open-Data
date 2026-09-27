@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/src/lib/session';
 import { pool } from '@/src/lib/db';
+import { validateWorkInput } from '@/src/lib/works';
 
 // GET: Тухайн ажлын дэлгэрэнгүй мэдээллийг авах
 export async function GET(
@@ -75,6 +76,8 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
+    // Хуучин өгөгдөлд "COMPANY" гэх мэт том үсгээр хадгалагдсан утга байдаг тул жижиг үсэг болгоно
+    if (typeof body.customer_type === 'string') body.customer_type = body.customer_type.toLowerCase();
     const { 
       title, 
       customer_type, 
@@ -87,6 +90,11 @@ export async function PUT(
       due_date, 
       description 
     } = body;
+
+    const inputError = await validateWorkInput(companyId, body);
+    if (inputError) {
+      return NextResponse.json({ success: false, error: inputError }, { status: 400 });
+    }
 
     let indCustomerId = null;
     let compCustomerId = null;

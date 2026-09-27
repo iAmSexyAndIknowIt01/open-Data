@@ -1,6 +1,8 @@
 import 'server-only';
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
+import { pool } from './db';
 
 export const SESSION_COOKIE = 'session';
 const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 хоног
@@ -8,10 +10,23 @@ const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 хоног
 // Хуучин гарын үсэггүй cookie-нууд (нэвтрэх, гарах үед устгана)
 const LEGACY_COOKIES = ['user_id', 'company_id', 'role'];
 
+export type Role = 'admin' | 'employee';
+
 export interface SessionPayload {
   userId: string;
   companyId: string;
   role: string;
+}
+
+export interface Session {
+  userId: string;
+  companyId: string;
+  role: Role;
+}
+
+// DB-д 'admin'-аас бусад бүх утгыг ажилтан гэж үзнэ
+export function normalizeRole(role: unknown): Role {
+  return typeof role === 'string' && role.trim().toLowerCase() === 'admin' ? 'admin' : 'employee';
 }
 
 function getKey() {
@@ -63,10 +78,40 @@ export async function createSession(payload: SessionPayload) {
   LEGACY_COOKIES.forEach((name) => cookieStore.delete(name));
 }
 
-// API route-уудад нэвтэрсэн хэрэглэгчийн мэдээллийг авах
-export async function getSession(): Promise<SessionPayload | null> {
+// API route-уудад нэвтэрсэн хэрэглэгчийн мэдээллийг авах.
+// Cookie-ийн гарын үсгээс гадна хэрэглэгч DB-д идэвхтэй эсэхийг шалгаж, role-ыг DB-ээс авна.
+// Ингэснээр ажилтныг идэвхгүй болгох эсвэл эрхийг нь өөрчлөхөд session даруй үйлчилнэ.
+export async function getSession(): Promise<Session | null> {
   const cookieStore = await cookies();
-  return decrypt(cookieStore.get(SESSION_COOKIE)?.value);
+  const payload = await decrypt(cookieStore.get(SESSION_COOKIE)?.value);
+  if (!payload) return null;
+
+  const { rows } = await pool.query(
+    `SELECT role, is_active FROM mt_user WHERE user_id = $1 AND company_id = $2`,
+    [payload.userId, payload.companyId]
+  );
+  const user = rows[0];
+  if (!user || user.is_active === false) return null;
+
+  return { userId: payload.userId, companyId: payload.companyId, role: normalizeRole(user.role) };
+}
+
+type AuthResult = { session: Session; error?: never } | { session?: never; error: NextResponse };
+
+// Route handler-ийн эхэнд: const { session, error } = await requireAuth({ admin: true }); if (error) return error;
+export async function requireAuth(options: { admin?: boolean } = {}): Promise<AuthResult> {
+  const session = await getSession();
+  if (!session) {
+    return {
+      error: NextResponse.json({ success: false, error: 'Нэвтрээгүй байна. (Auth required)' }, { status: 401 }),
+    };
+  }
+  if (options.admin && session.role !== 'admin') {
+    return {
+      error: NextResponse.json({ success: false, error: 'Энэ үйлдлийг зөвхөн админ хийх эрхтэй.' }, { status: 403 }),
+    };
+  }
+  return { session };
 }
 
 export async function deleteSession() {

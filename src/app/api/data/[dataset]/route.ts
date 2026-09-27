@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSession } from '@/src/lib/session';
+import { requireAuth } from '@/src/lib/session';
 import { getDataset, toCsv } from '@/src/lib/datasets';
 
 const PREVIEW_LIMIT = 20;
@@ -12,13 +12,9 @@ export async function GET(
   { params }: { params: Promise<{ dataset: string }> }
 ) {
   try {
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json(
-        { success: false, error: 'Нэвтрээгүй байна. (Auth required)' },
-        { status: 401 }
-      );
-    }
+    // Бүх өгөгдлийг бөөнөөр экспортлох нь зөвхөн админы эрх (харилцагчдын хувийн мэдээлэл агуулдаг)
+    const { session, error: authError } = await requireAuth({ admin: true });
+    if (authError) return authError;
 
     const { dataset: datasetKey } = await params;
     const dataset = getDataset(datasetKey);

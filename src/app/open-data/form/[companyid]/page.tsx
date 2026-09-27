@@ -81,10 +81,9 @@ export default function PublicAnketPage({ params }: { params: Promise<{ companyi
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          templateId, 
-          answers, 
-          questions 
+        body: JSON.stringify({
+          templateId,
+          answers,
         }),
       });
 

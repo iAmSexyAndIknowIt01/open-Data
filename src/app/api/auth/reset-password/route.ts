@@ -1,81 +1,73 @@
 import { NextResponse } from 'next/server';
+import { hash } from 'bcrypt';
 import { pool } from '../../../../lib/db';
-import bcrypt from 'bcrypt'; // Нууц үгээ hash хийдэг бол (Үгүй бол энэ хэсгийг өөрийнхөөрөө солино уу)
+import { validatePassword } from '../../../../lib/password';
+import { checkRateLimits, getClientIp } from '../../../../lib/rate-limit';
+import { RESET_MAX_ATTEMPTS, resetCodeMatches } from '../../../../lib/password-reset';
+
+const INVALID_CODE = { error: 'Баталгаажуулах код буруу эсвэл хугацаа нь дууссан байна.' };
 
 export async function POST(request: Request) {
-  const client = await pool.connect();
-
   try {
     const body = await request.json();
-    const { email, token, newPassword } = body;
+    const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+    const code = typeof body.token === 'string' ? body.token.trim() : '';
+    const { newPassword } = body;
 
-    // Шаардлагатай утгууд ирсэн эсэхийг шалгах
-    if (!email || !token || !newPassword) {
-      return NextResponse.json(
-        { error: 'Бүх талбайг гүйцэд бөглөнө үү.' },
-        { status: 400 }
-      );
+    if (!email || !code || !newPassword) {
+      return NextResponse.json({ error: 'Бүх талбарыг гүйцэд бөглөнө үү.' }, { status: 400 });
+    }
+    const passwordError = validatePassword(newPassword);
+    if (passwordError) {
+      return NextResponse.json({ error: passwordError }, { status: 400 });
     }
 
-    // 1. Имэйлээр компанийг олох
-    const companyResult = await client.query(
-      'SELECT company_id FROM mt_company WHERE email = $1',
+    const limited = await checkRateLimits([
+      { key: `reset:ip:${getClientIp(request)}`, limit: 10, windowSeconds: 15 * 60 },
+    ]);
+    if (limited) return limited;
+
+    // Хэрэглэгчийн хамгийн сүүлийн хүчинтэй код
+    const { rows } = await pool.query(
+      `SELECT u.user_id, r.id AS reset_id, r.code_hash, r.attempts
+       FROM mt_user u
+       JOIN mt_password_reset r ON r.user_id = u.user_id
+       WHERE LOWER(u.email) = $1 AND u.is_active IS NOT FALSE AND r.expires_at > now()
+       ORDER BY r.created_at DESC
+       LIMIT 1`,
       [email]
     );
-
-    if (companyResult.rows.length === 0) {
-      return NextResponse.json(
-        { error: 'Бүртгэлгүй имэйл байна.' },
-        { status: 404 }
-      );
+    const reset = rows[0];
+    if (!reset || reset.attempts >= RESET_MAX_ATTEMPTS) {
+      return NextResponse.json(INVALID_CODE, { status: 400 });
     }
 
-    const companyId = companyResult.rows[0].company_id;
-
-    // 2. mt_token хүснэгтээс company_id болон token таарч байгаа эсэх, хугацаа нь дуусаагүй эсэхийг шалгах
-    const tokenResult = await client.query(
-      'SELECT * FROM mt_token WHERE company_id = $1 AND token = $2 AND expires_at > NOW()',
-      [companyId, token]
-    );
-
-    if (tokenResult.rows.length === 0) {
-      return NextResponse.json(
-        { error: 'Баталгаажуулах код буруу эсвэл хугацаа нь дууссан байна.' },
-        { status: 400 }
-      );
+    // Буруу код бүрийг тоолж, 5 удаа буруу оруулбал код хүчингүй болно
+    if (!/^\d{6}$/.test(code) || !resetCodeMatches(reset.user_id, code, reset.code_hash)) {
+      await pool.query('UPDATE mt_password_reset SET attempts = attempts + 1 WHERE id = $1', [reset.reset_id]);
+      return NextResponse.json(INVALID_CODE, { status: 400 });
     }
 
-    // Транзакци эхлүүлэх
-    await client.query('BEGIN');
+    const passwordHash = await hash(newPassword, 10);
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query(
+        'UPDATE mt_user SET password_hash = $1, update_date = CURRENT_TIMESTAMP WHERE user_id = $2',
+        [passwordHash, reset.user_id]
+      );
+      await client.query('DELETE FROM mt_password_reset WHERE user_id = $1', [reset.user_id]);
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
 
-    // 3. Шинэ нууц үгийг hash хийх (Хэрэв танай систем шууд энгийн текгээр хадгалдаг бол bcrypt ашиглалгүй шууд явуулж болно)
-    const saltRounds = 10;
-    const passwordHash = await bcrypt.hash(newPassword, saltRounds);
-
-    // 4. mt_company хүснэгтийн password_hash-г шинэчлэх
-    await client.query(
-      'UPDATE mt_company SET password_hash = $1 WHERE company_id = $2',
-      [passwordHash, companyId]
-    );
-
-    // 5. Ашиглагдсан токенийг устгах
-    await client.query('DELETE FROM mt_token WHERE company_id = $1', [companyId]);
-
-    await client.query('COMMIT');
-
-    return NextResponse.json(
-      { message: 'Нууц үг амжилттай шинэчлэгдлээ.' },
-      { status: 200 }
-    );
-
+    return NextResponse.json({ message: 'Нууц үг амжилттай шинэчлэгдлээ.' }, { status: 200 });
   } catch (error) {
-    await client.query('ROLLBACK');
     console.error('Reset Password Error:', error);
-    return NextResponse.json(
-      { error: 'Серверт алдаа гарлаа.' },
-      { status: 500 }
-    );
-  } finally {
-    client.release();
+    return NextResponse.json({ error: 'Серверт алдаа гарлаа.' }, { status: 500 });
   }
 }

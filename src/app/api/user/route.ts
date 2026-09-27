@@ -32,7 +32,8 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      data: result.rows[0],
+      // role нь зөвхөн цэс харуулах/нуухад; эрхийн жинхэнэ шалгалт API бүр дээр хийгдэнэ
+      data: { ...result.rows[0], role: session!.role },
     });
   } catch (error) {
     console.error('User Fetch Error:', error);

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSession } from '@/src/lib/session';
+import { getSession, requireAuth } from '@/src/lib/session';
 import { pool } from '../../../lib/db'; // Төслийн замын дагуу тохируулна уу
 
 // 1. Тухайн компанийн идэвхтэй (is_active = true) анкетын тохиргоог авах GET метод
@@ -63,15 +63,10 @@ export async function GET() {
 export async function POST(request: Request) {
   const client = await pool.connect(); // Transaction ашиглах нь илүү найдвартай
   try {
-    const session = await getSession();
-    const userId = session?.userId;
-
-    if (!userId) {
-      return NextResponse.json(
-        { success: false, error: 'Нэвтрээгүй байна.' },
-        { status: 401 }
-      );
-    }
+    // Нийтийн анкетын асуултыг зөвхөн админ өөрчилнө
+    const { session, error: authError } = await requireAuth({ admin: true });
+    if (authError) return authError;
+    const userId = session.userId;
 
     // Хэрэглэгчийн company_id-г олох
     const userQuery = 'SELECT company_id FROM mt_user WHERE user_id = $1';

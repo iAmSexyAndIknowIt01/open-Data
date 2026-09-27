@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getSession } from '@/src/lib/session';
+import { getSession, normalizeRole, requireAuth } from '@/src/lib/session';
+import { validatePassword } from '@/src/lib/password';
 import { pool } from '../../../lib/db';
 import bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
@@ -55,19 +56,15 @@ export async function GET() {
 // 2. POST метод: Шинэ хэрэглэгч бүртгэх
 export async function POST(request: Request) {
   try {
-    const session = await getSession();
-    const currentUserId = session?.userId;
-    const companyId = session?.companyId;
-
-    if (!currentUserId || !companyId) {
-      return NextResponse.json(
-        { success: false, error: 'Нэвтрээгүй байна.' },
-        { status: 401 }
-      );
-    }
+    // Ажилтан нэмэх нь зөвхөн админы эрх
+    const { session, error: authError } = await requireAuth({ admin: true });
+    if (authError) return authError;
+    const companyId = session.companyId;
 
     const body = await request.json();
-    const { first_name, last_name, email, password, phone, address, male, role } = body;
+    const { first_name, last_name, password, phone, address, male } = body;
+    const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+    const role = normalizeRole(body.role);
 
     if (!first_name || !last_name || !email) {
       return NextResponse.json(
@@ -76,8 +73,13 @@ export async function POST(request: Request) {
       );
     }
 
-    const plainPassword = password || '12345678';
-    const passwordHash = await bcrypt.hash(plainPassword, 10);
+    // Default нууц үг ашиглахгүй — админ шаардлага хангасан нууц үг өгөх ёстой
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      return NextResponse.json({ success: false, error: passwordError }, { status: 400 });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
     const newUserId = randomUUID();
 
     const insertQuery = `
@@ -104,10 +106,10 @@ export async function POST(request: Request) {
       passwordHash, 
       first_name, 
       last_name, 
-      male ?? true, 
-      phone || null, 
-      address || null, 
-      role || 'Ажилтан'
+      male || null,
+      phone || null,
+      address || null,
+      role
     ];
 
     const newUserResult = await pool.query(insertQuery, values);

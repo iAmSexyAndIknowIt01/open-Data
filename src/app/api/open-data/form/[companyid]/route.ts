@@ -1,5 +1,17 @@
 import { NextResponse } from 'next/server';
 import { pool } from '../../../../../lib/db'; // Замын дагуу тохируулна уу
+import { checkRateLimits, getClientIp } from '../../../../../lib/rate-limit';
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const MAX_ANSWER_LENGTH = 1000;
+
+interface TemplateQuestion {
+  id: string | number;
+  type?: string;
+  label: string;
+  required?: boolean;
+  options?: string[];
+}
 
 // 1. Тухайн компанийн ID-аар идэвхтэй анкетын загварыг авах
 export async function GET(
@@ -9,6 +21,10 @@ export async function GET(
   try {
     const resolvedParams = await params;
     const companyid = resolvedParams.companyid;
+
+    if (!UUID_RE.test(companyid)) {
+      return NextResponse.json({ success: false, error: 'Анкет олдсонгүй.' }, { status: 404 });
+    }
 
     const query = `
       SELECT id, company_id, title, description, questions
@@ -38,84 +54,117 @@ export async function GET(
   }
 }
 
+// Хариултыг анкетын загварын асуулттай тулгаж шалгана.
+// Асуултын нэр, төрөл, заавал бөглөх эсэхийг клиентээс биш DB-д хадгалсан загвараас авна.
+function validateAnswers(questions: TemplateQuestion[], answers: unknown) {
+  if (typeof answers !== 'object' || answers === null || Array.isArray(answers)) {
+    return { error: 'Хариултын формат буруу байна.' };
+  }
+  const input = answers as Record<string, unknown>;
+  const cleaned: { question: TemplateQuestion; value: string }[] = [];
+
+  for (const question of questions) {
+    const raw = input[String(question.id)];
+    const value = raw === undefined || raw === null ? '' : String(raw).trim();
+
+    if (question.required && !value) {
+      return { error: `"${question.label}" талбарыг заавал бөглөнө үү.` };
+    }
+    if (value.length > MAX_ANSWER_LENGTH) {
+      return { error: `"${question.label}" хариулт хэт урт байна (${MAX_ANSWER_LENGTH} тэмдэгтээс ихгүй).` };
+    }
+    if (value && question.type === 'number' && !/^[+-]?\d+([.,]\d+)?$/.test(value.replace(/\s/g, ''))) {
+      return { error: `"${question.label}" талбарт зөвхөн тоо оруулна уу.` };
+    }
+    if (value && question.type === 'select' && Array.isArray(question.options) && !question.options.includes(value)) {
+      return { error: `"${question.label}" талбарын сонголт буруу байна.` };
+    }
+    cleaned.push({ question, value });
+  }
+  return { cleaned };
+}
+
 // 2. Үйлчлүүлэгчийн оруулсан хариуг form_submissions болон form_submission_answers рүү хадгалах
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ companyid: string }> }
 ) {
-  // Transaction ашиглах тул client-ийг pool-оос дуудна
-  const client = await pool.connect();
-
   try {
-    const resolvedParams = await params;
-    const companyid = resolvedParams.companyid;
+    const { companyid } = await params;
     const body = await request.json();
-    const { answers, templateId, questions } = body; 
-    // answers: Record<string, string> (жишээ нь: { "1": "Бат", "2": "99112233" })
-    // questions: Question[] (асуултын жагсаалт - question_label-г олох зорилгоор)
+    const { answers, templateId } = body;
 
-    if (!templateId) {
+    if (!UUID_RE.test(companyid) || typeof templateId !== 'string' || !UUID_RE.test(templateId)) {
       return NextResponse.json(
         { success: false, error: 'Анкетын загварын ID олдсонгүй.' },
         { status: 400 }
       );
     }
 
-    // Transaction эхлүүлэх
-    await client.query('BEGIN');
+    // Нэвтрэлтгүй нийтийн endpoint тул spam-аас хамгаална: IP-ээр 10 минутад 10, компаниар цагт 300
+    const limited = await checkRateLimits([
+      { key: `form:ip:${getClientIp(request)}`, limit: 10, windowSeconds: 10 * 60 },
+      { key: `form:company:${companyid}`, limit: 300, windowSeconds: 60 * 60 },
+    ]);
+    if (limited) return limited;
 
-    // Асуултуудыг хялбар хайх зорилгоор Map болгох (question_id -> question_label)
-    const questionMap = new Map<string, string>();
-    if (Array.isArray(questions)) {
-      questions.forEach((q: { id: string; label: string }) => {
-        questionMap.set(q.id, q.label);
-      });
+    // Загвар нь энэ компанийх бөгөөд идэвхтэй байх ёстой
+    const templateResult = await pool.query(
+      `SELECT questions FROM mt_templates WHERE id = $1 AND company_id = $2 AND is_active = true`,
+      [templateId, companyid]
+    );
+    if (templateResult.rows.length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'Анкет олдсонгүй эсвэл идэвхгүй болсон байна.' },
+        { status: 404 }
+      );
+    }
+    const questions: TemplateQuestion[] = Array.isArray(templateResult.rows[0].questions)
+      ? templateResult.rows[0].questions
+      : [];
+
+    const { cleaned, error } = validateAnswers(questions, answers);
+    if (error) {
+      return NextResponse.json({ success: false, error }, { status: 400 });
     }
 
-    // 1. form_submissions хүснэгт рүү insert хийж шинэ submission_id авах
-    const submissionQuery = `
-      INSERT INTO form_submissions (form_template_id, company_id)
-      VALUES ($1, $2)
-      RETURNING id
-    `;
-    const submissionResult = await client.query(submissionQuery, [templateId, companyid]);
-    const submissionId = submissionResult.rows[0].id;
+    // Transaction ашиглах тул client-ийг pool-оос дуудна
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
 
-    // 2. form_submission_answers хүснэгт рүү хариулт тус бүрээр insert хийх
-    if (answers && typeof answers === 'object') {
-      for (const [questionId, answerValue] of Object.entries(answers)) {
-        const questionLabel = questionMap.get(questionId) || 'Тодорхойгүй асуулт';
+      const submissionResult = await client.query(
+        `INSERT INTO form_submissions (form_template_id, company_id) VALUES ($1, $2) RETURNING id`,
+        [templateId, companyid]
+      );
+      const submissionId = submissionResult.rows[0].id;
 
-        const answerQuery = `
-          INSERT INTO form_submission_answers (submission_id, question_id, question_label, answer_value)
-          VALUES ($1, $2, $3, $4)
-        `;
-        await client.query(answerQuery, [
-          submissionId,
-          questionId,
-          questionLabel,
-          answerValue !== undefined && answerValue !== null ? String(answerValue) : '',
-        ]);
+      for (const { question, value } of cleaned!) {
+        if (!value) continue;
+        await client.query(
+          `INSERT INTO form_submission_answers (submission_id, question_id, question_label, answer_value)
+           VALUES ($1, $2, $3, $4)`,
+          [submissionId, String(question.id), question.label, value]
+        );
       }
-    }
 
-    // Бүх зүйл амжилттай бол commit хийх
-    await client.query('COMMIT');
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
 
     return NextResponse.json({
       success: true,
       message: 'Анкет амжилттай илгээгдлээ.',
     });
   } catch (error) {
-    // Алдаа гарвал бүх үйлдлийг буцаах
-    await client.query('ROLLBACK');
     console.error('Client Answer Save Error:', error);
     return NextResponse.json(
       { success: false, error: 'Хадгалахад алдаа гарлаа.' },
       { status: 500 }
     );
-  } finally {
-    // Client-ийг чөлөөлөх
-    client.release();
   }
 }

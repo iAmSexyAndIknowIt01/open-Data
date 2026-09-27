@@ -124,6 +124,13 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ userI
       }
       return <span className="text-slate-800 dark:text-slate-100 font-bold">{String(value)}</span>;
     }
+    if (key === 'role') {
+      return (
+        <span className="text-slate-800 dark:text-slate-100 font-bold">
+          {String(value).toLowerCase() === 'admin' ? 'Админ' : 'Ажилтан'}
+        </span>
+      );
+    }
     if (key === 'is_active') {
       return value ? (
         <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
@@ -237,7 +244,7 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ userI
                   </span>
                 </div>
                 {!isEditing ? (
-                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-semibold">{user.position || user.role || 'Ажилтан'}</p>
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-semibold">{user.position || (user.role?.toLowerCase() === 'admin' ? 'Админ' : 'Ажилтан')}</p>
                 ) : (
                   <input 
                     type="text" 
@@ -378,13 +385,12 @@ export default function EmployeeDetailPage({ params }: { params: Promise<{ userI
                             </select>
                           ) : key === 'role' ? (
                             <select
-                              value={String(value ?? 'User')}
+                              value={String(value ?? '').toLowerCase() === 'admin' ? 'admin' : 'employee'}
                               onChange={(e) => setEditForm({...editForm, role: e.target.value})}
                               className="w-full px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
                             >
-                              <option value="Admin">Admin</option>
-                              <option value="Manager">Manager</option>
-                              <option value="User">User</option>
+                              <option value="admin">Админ</option>
+                              <option value="employee">Ажилтан</option>
                             </select>
                           ) : (
                             <input

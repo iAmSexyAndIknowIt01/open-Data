@@ -9,6 +9,7 @@ interface UserData {
   email: string;
   first_name: string;
   last_name: string;
+  role?: 'admin' | 'employee';
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -57,21 +58,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   // Үндсэн цэснээс Ажилчид, Үйлчилгээг хасаж, Тохиргоог submenu-тэй болгож байна
+  // adminOnly цэсийг ажилтанд харуулахгүй (эрхийн жинхэнэ шалгалт API дээр хийгдэнэ)
+  const isAdmin = userData?.role === 'admin';
+
   const navItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Удирдлага' },
-    { href: '/dashboard/data', icon: Database, label: 'Өгөгдөл' },
+    { href: '/dashboard/data', icon: Database, label: 'Өгөгдөл', adminOnly: true },
     { href: '/dashboard/customers', icon: UserCheck, label: 'Харилцагч' },
     { href: '/dashboard/workshop', icon: Wrench, label: 'Ажил' },
     { href: '/dashboard/analytics', icon: BarChart3, label: 'Аналитик' },
-  ];
-  
+  ].filter((item) => !item.adminOnly || isAdmin);
+
   // Тохиргооны доошоо унадаг дэд цэсүүд
   const settingsSubItems = [
     { href: '/dashboard/employees', icon: Users, label: 'Ажилчид' },
     { href: '/dashboard/services', icon: Briefcase, label: 'Үйлчилгээ' },
-    { href: '/dashboard/my-anket', icon: FileText, label: 'Анкет' },
+    { href: '/dashboard/my-anket', icon: FileText, label: 'Анкет', adminOnly: true },
     { href: '/dashboard/settings', icon: Settings, label: 'Ерөнхий тохиргоо' },
-  ];
+  ].filter((item) => !item.adminOnly || isAdmin);
 
   // Хэрэглэгчийн мэдээллийг API-аас татах
   useEffect(() => {
@@ -131,7 +135,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   // Тухайн дэд цэс идэвхтэй эсэхийг шалгах
-  const isSettingsActive = pathname === '/dashboard/employees' || pathname === '/dashboard/services' || pathname === '/dashboard/settings';
+  const isSettingsActive = settingsSubItems.some((sub) => pathname.startsWith(sub.href));
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 flex flex-col transition-colors">
