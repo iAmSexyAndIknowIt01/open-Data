@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { 
-  Building2, User, Plus, Search, Mail, Phone, MapPin, 
-  X, CheckCircle2, LayoutList, LayoutGrid 
+import { useState, useEffect, useRef, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import {
+  Building2, User, Plus, Search, Mail, Phone, MapPin,
+  X, CheckCircle2, LayoutList, LayoutGrid, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import Loading from '@/src/app/components/loading';
 
@@ -22,12 +22,23 @@ interface Customer {
   male?: string | null;
 }
 
-export default function CustomersPage() {
+function CustomersContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'all' | 'company' | 'individual'>('all');
+
+  // Шүүлтүүр болон хуудасны төлөвийг URL-аас эхлүүлнэ (дэлгэрэнгүй хуудаснаас буцахад хадгалагдана)
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q') || '');
+  const [activeTab, setActiveTab] = useState<'all' | 'company' | 'individual'>(() => {
+    const tab = searchParams.get('tab');
+    return tab === 'company' || tab === 'individual' ? tab : 'all';
+  });
+  const [currentPage, setCurrentPage] = useState(() => {
+    const pageParam = searchParams.get('page');
+    return pageParam ? parseInt(pageParam, 10) || 1 : 1;
+  });
+  const itemsPerPage = 9;
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -62,6 +73,29 @@ export default function CustomersPage() {
   useEffect(() => {
     fetchCustomers();
   }, []);
+
+  // Шүүлтүүр болон хуудасны төлөвийг URL-тай синк хийх.
+  // Хуудсыг зөвхөн шүүлтүүр бодитоор өөрчлөгдсөн үед 1 болгоно (mount үед биш).
+  const filterKey = JSON.stringify([searchQuery, activeTab]);
+  const prevFilterKey = useRef(filterKey);
+
+  useEffect(() => {
+    const filtersChanged = prevFilterKey.current !== filterKey;
+    prevFilterKey.current = filterKey;
+
+    const page = filtersChanged ? 1 : currentPage;
+    if (filtersChanged) setCurrentPage(1);
+
+    const params = new URLSearchParams();
+    if (searchQuery) params.set('q', searchQuery);
+    if (activeTab !== 'all') params.set('tab', activeTab);
+    if (page > 1) params.set('page', page.toString());
+
+    const query = params.toString();
+    if (query !== searchParams.toString()) {
+      router.replace(`/dashboard/customers${query ? `?${query}` : ''}`, { scroll: false });
+    }
+  }, [filterKey, currentPage]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,6 +141,11 @@ export default function CustomersPage() {
     if (activeTab === 'individual') return matchesSearch && c.customer_type === 'individual';
     return matchesSearch;
   });
+
+  const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentCustomers = filteredCustomers.slice(indexOfFirstItem, indexOfLastItem);
 
   return (
     <div className="space-y-6 pb-20 text-slate-800 dark:text-slate-100">
@@ -226,7 +265,7 @@ export default function CustomersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-300">
-                {filteredCustomers.map((customer) => {
+                {currentCustomers.map((customer) => {
                   const displayName = customer.customer_type === 'company' 
                     ? customer.name 
                     : `${customer.last_name || ''} ${customer.first_name || ''}`.trim();
@@ -287,7 +326,7 @@ export default function CustomersPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredCustomers.map((customer) => {
+          {currentCustomers.map((customer) => {
             const displayName = customer.customer_type === 'company' 
               ? customer.name 
               : `${customer.last_name || ''} ${customer.first_name || ''}`.trim();
@@ -336,6 +375,41 @@ export default function CustomersPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Pagination Component */}
+      {!loading && totalPages > 1 && (
+        <div className="flex items-center justify-between bg-white dark:bg-slate-900 px-5 py-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-2xs">
+          <div className="text-xs font-medium text-slate-400">
+            Нийт <span className="font-bold text-slate-700 dark:text-slate-200">{filteredCustomers.length}</span> өгөгдлөөс <span className="font-bold text-slate-700 dark:text-slate-200">{indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredCustomers.length)}</span> хүртэл харуулж байна
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setCurrentPage(Math.max(currentPage - 1, 1))}
+              disabled={currentPage === 1}
+              className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+            >
+              <ChevronLeft size={16} />
+            </button>
+
+            <div className="flex items-center gap-1 px-2">
+              <span className="text-xs font-bold text-slate-800 dark:text-white">{currentPage}</span>
+              <span className="text-xs text-slate-400">/</span>
+              <span className="text-xs font-bold text-slate-400">{totalPages}</span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setCurrentPage(Math.min(currentPage + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
         </div>
       )}
 
@@ -501,5 +575,18 @@ export default function CustomersPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// useSearchParams ашиглаж байгаа тул Suspense дотор экспортлох (Build error гаргахгүй)
+export default function CustomersPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen w-full items-center justify-center p-10">
+        <Loading />
+      </div>
+    }>
+      <CustomersContent />
+    </Suspense>
   );
 }
