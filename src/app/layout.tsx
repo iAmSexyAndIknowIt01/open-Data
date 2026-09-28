@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Footer from "@/src/components/landingPage/Footer";
 import { ThemeProvider } from "@/src/components/ThemeProvider";
+import ValidationMessages from "@/src/components/ValidationMessages";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -32,6 +33,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     >
       <body className="min-h-full flex flex-col justify-between bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          {/* Формын шалгалтын мессежийг браузерын хэлээс үл хамааран монголоор харуулна */}
+          <ValidationMessages />
           {/* Үндсэн контент */}
           <div className="flex-1 flex flex-col">
             {children}

@@ -14,7 +14,7 @@ export async function GET() {
     const session = await getSession();
     if (!session) {
       return NextResponse.json(
-        { success: false, error: 'Нэвтрээгүй байна. (Auth required)' },
+        { success: false, error: 'Нэвтрээгүй байна. Дахин нэвтэрнэ үү.' },
         { status: 401 }
       );
     }

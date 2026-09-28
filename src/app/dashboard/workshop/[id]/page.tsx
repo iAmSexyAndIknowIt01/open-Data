@@ -2,16 +2,12 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Save } from 'lucide-react';
+import Link from 'next/link';
+import { ArrowLeft, Save, CalendarCheck } from 'lucide-react';
 import Loading from '@/src/app/components/loading';
 import CommonModal from '@/src/app/components/CommonModal';
-
-interface OptionData {
-  individuals: { id: string; first_name: string; last_name: string; phone: string }[];
-  companies: { id: string; name: string; tax_number: string; phone: string }[];
-  services: { service_id: number; name: string; price: number; duration: number }[];
-  employees: { user_id: string; first_name: string; last_name: string; email: string }[];
-}
+import { useFormValidation, FormErrorBanner } from '@/src/app/components/FormValidation';
+import WorkFormFields, { emptyWorkForm, toServiceFormLines, type WorkFormData, type WorkOptionData } from '../WorkFormFields';
 
 export default function WorkDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -20,7 +16,7 @@ export default function WorkDetailPage({ params }: { params: Promise<{ id: strin
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [options, setOptions] = useState<OptionData>({ individuals: [], companies: [], services: [], employees: [] });
+  const [options, setOptions] = useState<WorkOptionData>({ individuals: [], companies: [], services: [], employees: [] });
 
   // CommonModal-ийн төлөв
   const [modal, setModal] = useState<{
@@ -35,18 +31,11 @@ export default function WorkDetailPage({ params }: { params: Promise<{ id: strin
     message: '',
   });
 
-  const [formData, setFormData] = useState({
-    title: '',
-    customer_type: 'individual' as 'individual' | 'company',
-    customer_id: '',
-    service_id: '',
-    assigned_employee: '',
-    price: '',
-    status: 'pending',
-    priority: 'medium',
-    due_date: '',
-    description: ''
-  });
+  const [formData, setFormData] = useState<WorkFormData>(emptyWorkForm);
+  const [submitError, setSubmitError] = useState('');
+  // Энэ ажил захиалгаас үүссэн бол ("Ажил эхлүүлэх")
+  const [reservation, setReservation] = useState<{ date: string; start: string } | null>(null);
+  const { formRef, errors } = useFormValidation();
 
   const fetchWorkAndOptions = async () => {
     try {
@@ -66,6 +55,7 @@ export default function WorkDetailPage({ params }: { params: Promise<{ id: strin
       
       if (workResult.success && workResult.data) {
         const item = workResult.data;
+        setReservation(item.reservation_id && item.reservation_date ? { date: item.reservation_date, start: item.reservation_start } : null);
         const resolvedType = item.customer_type === 'company' ? 'company' : 'individual';
         const currentCustomerId = resolvedType === 'company' 
           ? (item.company_customer_id || '') 
@@ -75,7 +65,7 @@ export default function WorkDetailPage({ params }: { params: Promise<{ id: strin
           title: item.title || '',
           customer_type: resolvedType,
           customer_id: currentCustomerId,
-          service_id: item.service_id ? item.service_id.toString() : '',
+          services: toServiceFormLines(item.services),
           assigned_employee: item.assigned_employee ? item.assigned_employee.toString() : '',
           price: item.price !== null && item.price !== undefined ? item.price.toString() : '',
           status: item.status || 'pending',
@@ -95,27 +85,9 @@ export default function WorkDetailPage({ params }: { params: Promise<{ id: strin
     fetchWorkAndOptions();
   }, [workId]);
 
-  const handleServiceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const sId = e.target.value;
-    const selectedService = options.services.find(s => s.service_id.toString() === sId);
-    setFormData(prev => ({
-      ...prev,
-      service_id: sId,
-      price: selectedService ? selectedService.price.toString() : prev.price
-    }));
-  };
-
-  const handleCustomerTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const type = e.target.value as 'individual' | 'company';
-    setFormData(prev => ({
-      ...prev,
-      customer_type: type,
-      customer_id: ''
-    }));
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitError('');
     try {
       setSaving(true);
       const res = await fetch(`/api/workshop/${workId}`, {
@@ -136,21 +108,11 @@ export default function WorkDetailPage({ params }: { params: Promise<{ id: strin
           }
         });
       } else {
-        setModal({
-          isOpen: true,
-          type: 'error',
-          title: 'Алдаа гарлаа',
-          message: result.error || 'Хадгалахад алдаа гарлаа.',
-        });
+        setSubmitError(result.error || 'Хадгалахад алдаа гарлаа.');
       }
     } catch (err) {
       console.error('Error updating work:', err);
-      setModal({
-        isOpen: true,
-        type: 'error',
-        title: 'Серверийн алдаа',
-        message: 'Сервертэй холбогдоход алдаа гарлаа.',
-      });
+      setSubmitError('Сервертэй холбогдоход алдаа гарлаа. Дахин оролдоно уу.');
     } finally {
       setSaving(false);
     }
@@ -178,154 +140,24 @@ export default function WorkDetailPage({ params }: { params: Promise<{ id: strin
           <div>
             <h1 className="text-base sm:text-xl font-black text-slate-900 dark:text-white">Ажлын дэлгэрэнгүй & Засварлах</h1>
             <p className="text-[11px] sm:text-xs text-slate-400 dark:text-slate-400">Мэдээллийг өөрчлөөд хадгалах товчийг дарна уу</p>
+            {reservation && (
+              <Link
+                href={`/dashboard/reservations?from=${reservation.date}&to=${reservation.date}`}
+                className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg bg-violet-50 dark:bg-violet-950/50 text-violet-700 dark:text-violet-300 hover:underline"
+                title="Ажил дуусвал захиалга автоматаар Үйлчлүүлсэн болно"
+              >
+                <CalendarCheck size={12} aria-hidden /> Захиалгаас үүссэн: {reservation.date.replaceAll('-', '.')} {reservation.start} →
+              </Link>
+            )}
           </div>
         </div>
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-900 p-5 sm:p-8 rounded-2xl sm:rounded-3xl border border-slate-100 dark:border-slate-800 shadow-2xs space-y-4 transition-colors">
-        <div>
-          <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Ажлын нэр / Гарчиг *</label>
-          <input 
-            type="text"
-            required
-            value={formData.title}
-            onChange={(e) => setFormData({...formData, title: e.target.value})}
-            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 dark:focus:border-blue-400"
-          />
-        </div>
+      <form ref={formRef} onSubmit={handleSubmit} className="bg-white dark:bg-slate-900 p-5 sm:p-8 rounded-2xl sm:rounded-3xl border border-slate-100 dark:border-slate-800 shadow-2xs space-y-4 transition-colors">
+        <WorkFormFields formData={formData} setFormData={setFormData} options={options} errors={errors} />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Харилцагчийн төрөл *</label>
-            <select
-              value={formData.customer_type}
-              onChange={handleCustomerTypeChange}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 dark:focus:border-blue-400 bg-white dark:bg-slate-900"
-            >
-              <option value="individual">Хувь хүн</option>
-              <option value="company">Компани</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Харилцагч сонгох *</label>
-            <select
-              required
-              value={formData.customer_id}
-              onChange={(e) => setFormData({...formData, customer_id: e.target.value})}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 dark:focus:border-blue-400 bg-white dark:bg-slate-900"
-            >
-              <option value="">-- Сонгох --</option>
-              {formData.customer_type === 'individual' ? (
-                options.individuals.map(ind => (
-                  <option key={ind.id} value={ind.id}>
-                    {ind.last_name} {ind.first_name} ({ind.phone || 'Утасгүй'})
-                  </option>
-                ))
-              ) : (
-                options.companies.map(comp => (
-                  <option key={comp.id} value={comp.id}>
-                    {comp.name} (Регистр: {comp.tax_number})
-                  </option>
-                ))
-              )}
-            </select>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Үйлчилгээ</label>
-            <select
-              value={formData.service_id}
-              onChange={handleServiceChange}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 dark:focus:border-blue-400 bg-white dark:bg-slate-900"
-            >
-              <option value="">-- Үйлчилгээ сонгох --</option>
-              {options.services.map(ser => (
-                <option key={ser.service_id} value={ser.service_id}>
-                  {ser.name} ({Number(ser.price).toLocaleString()} ₮)
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Хариуцсан ажилтан</label>
-            <select
-              value={formData.assigned_employee}
-              onChange={(e) => setFormData({...formData, assigned_employee: e.target.value})}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 dark:focus:border-blue-400 bg-white dark:bg-slate-900"
-            >
-              <option value="">-- Ажилтан сонгох --</option>
-              {options.employees.map(emp => (
-                <option key={emp.user_id} value={emp.user_id}>
-                  {emp.last_name} {emp.first_name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Төлөв</label>
-            <select
-              value={formData.status}
-              onChange={(e) => setFormData({...formData, status: e.target.value})}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 dark:focus:border-blue-400 bg-white dark:bg-slate-900"
-            >
-              <option value="pending">Хүлээгдэж буй</option>
-              <option value="in_progress">Хийгдэж байна</option>
-              <option value="completed">Дууссан</option>
-              <option value="cancelled">Цуцлагдсан</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Зэрэглэл (Priority)</label>
-            <select
-              value={formData.priority}
-              onChange={(e) => setFormData({...formData, priority: e.target.value})}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 dark:focus:border-blue-400 bg-white dark:bg-slate-900"
-            >
-              <option value="low">Энгийн</option>
-              <option value="medium">Дунд</option>
-              <option value="high">Яаралтай</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Үнэ (₮)</label>
-            <input 
-              type="number"
-              value={formData.price}
-              onChange={(e) => setFormData({...formData, price: e.target.value})}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 dark:focus:border-blue-400"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Дуусах хугацаа</label>
-            <input 
-              type="date"
-              value={formData.due_date}
-              onChange={(e) => setFormData({...formData, due_date: e.target.value})}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 dark:focus:border-blue-400"
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Тайлбар</label>
-          <textarea 
-            rows={4}
-            value={formData.description}
-            onChange={(e) => setFormData({...formData, description: e.target.value})}
-            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 dark:focus:border-blue-400 resize-none"
-          />
-        </div>
+        <FormErrorBanner message={submitError} onClose={() => setSubmitError('')} />
 
         <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100 dark:border-slate-800">
           <button

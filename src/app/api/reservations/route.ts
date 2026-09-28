@@ -6,7 +6,9 @@ import {
   RESERVATION_SELECT,
   findEmployeeConflict,
   getCustomerSnapshot,
+  replaceReservationServices,
   validateReservationInput,
+  withTransaction,
 } from '@/src/lib/reservations';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -90,7 +92,7 @@ export async function POST(request: Request) {
     const { companyId, userId } = session;
 
     const body = await request.json();
-    const validated = await validateReservationInput(companyId, body, { requireCustomer: true });
+    const validated = await validateReservationInput(companyId, body, { requireCustomer: true, isNew: true });
     if (validated.error !== undefined) {
       return NextResponse.json({ success: false, error: validated.error }, { status: 400 });
     }
@@ -107,7 +109,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: conflict }, { status: 409 });
     }
 
-    const { rows } = await pool.query(
+    // Захиалга болон үйлчилгээнүүдийг хамт хадгална
+    const reservation = await withTransaction(async (client) => {
+      const { rows } = await client.query(
       `
         INSERT INTO mt_reservation (
           company_id, customer_type, customer_id, company_customer_id,
@@ -128,7 +132,7 @@ export async function POST(request: Request) {
         customer.customer_email,
         customer.customer_address,
         customer.customer_register,
-        input.service_id,
+        input.services[0]?.service_id ?? null, // хуучин query-нүүдэд зориулсан үндсэн үйлчилгээ
         input.assigned_employee,
         input.reservation_date,
         input.start_time,
@@ -137,11 +141,14 @@ export async function POST(request: Request) {
         input.note,
         userId,
       ]
-    );
+      );
+      await replaceReservationServices(client, rows[0].reservation_id, input.services);
+      return rows[0];
+    });
 
     return NextResponse.json({
       success: true,
-      data: rows[0],
+      data: reservation,
       message: 'Захиалга амжилттай бүртгэгдлээ',
     });
   } catch (error) {

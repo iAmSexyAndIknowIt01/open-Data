@@ -179,13 +179,13 @@ const DATASETS: DatasetDefinition[] = [
            WHEN w.customer_type = 'individual' THEN TRIM(CONCAT(c.last_name, ' ', c.first_name))
            WHEN w.customer_type = 'company' THEN cc.name
          END AS customer_name,
-         s.name AS service_name,
+         (SELECT string_agg(ws.service_name, ', ' ORDER BY ws.sort_order)
+          FROM mt_work_services ws WHERE ws.work_id = w.work_id) AS service_name,
          TRIM(CONCAT(u.last_name, ' ', u.first_name)) AS employee_name,
          w.price, w.status, w.priority, w.due_date, w.description, w.create_date
        FROM mt_works w
        LEFT JOIN mt_customer c ON w.customer_id = c.customer_id
        LEFT JOIN mt_customercompany cc ON w.company_customer_id = cc.company_customer_id
-       LEFT JOIN mt_services s ON w.service_id = s.service_id
        LEFT JOIN mt_user u ON w.assigned_employee = u.user_id
        WHERE w.company_id = $1
        ORDER BY w.create_date DESC`,

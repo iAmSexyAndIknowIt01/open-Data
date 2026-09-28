@@ -4,10 +4,13 @@ import { pool } from '@/src/lib/db';
 import {
   RESERVATION_FROM,
   RESERVATION_SELECT,
-  RESERVATION_STATUSES,
+  LINKED_TO_WORK_ERROR,
+  MANUAL_RESERVATION_STATUSES,
   findEmployeeConflict,
   getCustomerSnapshot,
+  replaceReservationServices,
   validateReservationInput,
+  withTransaction,
 } from '@/src/lib/reservations';
 
 type Params = { params: Promise<{ id: string }> };
@@ -55,6 +58,9 @@ export async function PUT(request: Request, { params }: Params) {
     const { id } = await params;
     const existing = await findReservation(id, companyId);
     if (!existing) return notFound();
+    if (existing.work_id) {
+      return NextResponse.json({ success: false, error: LINKED_TO_WORK_ERROR }, { status: 409 });
+    }
 
     const body = await request.json();
     const validated = await validateReservationInput(companyId, body, { requireCustomer: false });
@@ -90,7 +96,8 @@ export async function PUT(request: Request, { params }: Params) {
       return NextResponse.json({ success: false, error: conflict }, { status: 409 });
     }
 
-    await pool.query(
+    await withTransaction(async (client) => {
+      await client.query(
       `
         UPDATE mt_reservation SET
           customer_type = $1,
@@ -120,7 +127,7 @@ export async function PUT(request: Request, { params }: Params) {
         customer.customer_email,
         customer.customer_address,
         customer.customer_register,
-        input.service_id,
+        input.services[0]?.service_id ?? null, // хуучин query-нүүдэд зориулсан үндсэн үйлчилгээ
         input.assigned_employee,
         input.reservation_date,
         input.start_time,
@@ -130,7 +137,9 @@ export async function PUT(request: Request, { params }: Params) {
         existing.reservation_id,
         companyId,
       ]
-    );
+      );
+      await replaceReservationServices(client, existing.reservation_id, input.services);
+    });
 
     return NextResponse.json({
       success: true,
@@ -155,12 +164,15 @@ export async function PATCH(request: Request, { params }: Params) {
 
     const { id } = await params;
     const { status } = await request.json();
-    if (!RESERVATION_STATUSES.includes(String(status))) {
+    if (!MANUAL_RESERVATION_STATUSES.includes(String(status))) {
       return NextResponse.json({ success: false, error: 'Захиалгын төлөв буруу байна.' }, { status: 400 });
     }
 
     const existing = await findReservation(id, companyId);
     if (!existing) return notFound();
+    if (existing.work_id) {
+      return NextResponse.json({ success: false, error: LINKED_TO_WORK_ERROR }, { status: 409 });
+    }
 
     // Цуцлагдсан захиалгыг сэргээхэд тухайн цаг өөр захиалгад орсон байж болно
     const conflict = await findEmployeeConflict(

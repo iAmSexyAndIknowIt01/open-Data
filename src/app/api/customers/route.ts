@@ -10,7 +10,7 @@ export async function GET(request: Request) {
 
     if (!companyId) {
       return NextResponse.json(
-        { success: false, error: 'Нэвтрээгүй байна. (Auth required)' },
+        { success: false, error: 'Нэвтрээгүй байна. Дахин нэвтэрнэ үү.' },
         { status: 401 }
       );
     }
@@ -84,7 +84,7 @@ export async function POST(request: Request) {
 
     if (!companyId) {
       return NextResponse.json(
-        { success: false, error: 'Нэвтрээгүй байна. (Auth required)' },
+        { success: false, error: 'Нэвтрээгүй байна. Дахин нэвтэрнэ үү.' },
         { status: 401 }
       );
     }

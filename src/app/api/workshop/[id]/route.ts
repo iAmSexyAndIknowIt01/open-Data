@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/src/lib/session';
 import { pool } from '@/src/lib/db';
-import { validateWorkInput } from '@/src/lib/works';
+import {
+  normalizeWorkServices,
+  replaceWorkServices,
+  sumWorkServices,
+  validateWorkInput,
+  WORK_SERVICES_SELECT,
+} from '@/src/lib/works';
 
 // GET: Тухайн ажлын дэлгэрэнгүй мэдээллийг авах
 export async function GET(
@@ -14,7 +20,7 @@ export async function GET(
 
     if (!companyId) {
       return NextResponse.json(
-        { success: false, error: 'Нэвтрээгүй байна. (Auth required)' },
+        { success: false, error: 'Нэвтрээгүй байна. Дахин нэвтэрнэ үү.' },
         { status: 401 }
       );
     }
@@ -29,13 +35,15 @@ export async function GET(
           WHEN w.customer_type = 'company' THEN cc.name
           ELSE 'Тодорхойгүй'
         END AS customer_name,
-        s.name AS service_name,
-        CONCAT(COALESCE(u.last_name, ''), ' ', COALESCE(u.first_name, '')) AS employee_name
+        ${WORK_SERVICES_SELECT},
+        CONCAT(COALESCE(u.last_name, ''), ' ', COALESCE(u.first_name, '')) AS employee_name,
+        to_char(rv.reservation_date, 'YYYY-MM-DD') AS reservation_date,
+        to_char(rv.start_time, 'HH24:MI') AS reservation_start
       FROM mt_works w
       LEFT JOIN mt_customer c ON w.customer_id = c.customer_id
       LEFT JOIN mt_customercompany cc ON w.company_customer_id = cc.company_customer_id
-      LEFT JOIN mt_services s ON w.service_id = s.service_id
       LEFT JOIN mt_user u ON w.assigned_employee::text = u.user_id::text
+      LEFT JOIN mt_reservation rv ON rv.reservation_id = w.reservation_id
       WHERE w.work_id = $1 AND w.company_id = $2
     `;
 
@@ -69,7 +77,7 @@ export async function PUT(
 
     if (!companyId) {
       return NextResponse.json(
-        { success: false, error: 'Нэвтрээгүй байна. (Auth required)' },
+        { success: false, error: 'Нэвтрээгүй байна. Дахин нэвтэрнэ үү.' },
         { status: 401 }
       );
     }
@@ -82,7 +90,6 @@ export async function PUT(
       title, 
       customer_type, 
       customer_id, 
-      service_id, 
       assigned_employee, 
       price, 
       status, 
@@ -94,6 +101,20 @@ export async function PUT(
     const inputError = await validateWorkInput(companyId, body);
     if (inputError) {
       return NextResponse.json({ success: false, error: inputError }, { status: 400 });
+    }
+
+    const serviceResult = await normalizeWorkServices(companyId, body);
+    if (serviceResult.error !== undefined) {
+      return NextResponse.json({ success: false, error: serviceResult.error }, { status: 400 });
+    }
+    const lines = serviceResult.lines;
+    if (lines.length === 0) {
+      return NextResponse.json({ success: false, error: 'Дор хаяж нэг үйлчилгээ сонгоно уу.' }, { status: 400 });
+    }
+    // Үйлчилгээ сонгосон бол нийт үнэ = мөрүүдийн нийлбэр, үгүй бол гараар оруулсан үнэ
+    const totalPrice = lines.length > 0 ? sumWorkServices(lines) : Math.round((Number(price) || 0) * 100) / 100;
+    if (totalPrice < 0) {
+      return NextResponse.json({ success: false, error: 'Үнэ буруу байна.' }, { status: 400 });
     }
 
     let indCustomerId = null;
@@ -128,11 +149,11 @@ export async function PUT(
       customer_type,
       indCustomerId,
       compCustomerId,
-      service_id ? Number(service_id) : null,
+      lines[0]?.service_id ?? null, // хуучин query-нүүдэд зориулсан үндсэн үйлчилгээ
       assigned_employee || null,
       title,
       description || null,
-      price ? Number(price) : 0,
+      totalPrice,
       status || 'pending',
       priority || 'medium',
       due_date || null,
@@ -140,9 +161,33 @@ export async function PUT(
       companyId
     ];
 
-    const { rows } = await pool.query(updateQuery, values);
+    const client = await pool.connect();
+    let work;
+    try {
+      await client.query('BEGIN');
+      const { rows } = await client.query(updateQuery, values);
+      work = rows[0];
+      if (work) await replaceWorkServices(client, work.work_id, lines);
+      // Захиалгаас үүссэн ажил: дуусвал захиалга "Үйлчлүүлсэн", бусад үед "Ажилд шилжсэн".
+      // Ажил цуцлагдсан ч захиалга өөрийн өгөгдөл, холбоосоороо үлдэнэ.
+      if (work?.reservation_id) {
+        await client.query(
+          `UPDATE mt_reservation
+           SET status = CASE WHEN $1 = 'completed' THEN 'completed' ELSE 'in_service' END,
+               update_date = CURRENT_TIMESTAMP
+           WHERE reservation_id = $2 AND company_id = $3`,
+          [work.status, work.reservation_id, companyId]
+        );
+      }
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
 
-    if (rows.length === 0) {
+    if (!work) {
       return NextResponse.json(
         { success: false, error: 'Засварлах ажил олдсонгүй' },
         { status: 404 }
@@ -151,7 +196,7 @@ export async function PUT(
 
     return NextResponse.json({ 
       success: true, 
-      data: rows[0],
+      data: work,
       message: 'Ажил амжилттай шинэчлэгдлээ' 
     });
   } catch (error) {
