@@ -1,14 +1,39 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef, useId, Suspense } from 'react';
+import { useState, useEffect, useMemo, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import {
   CalendarCheck, Plus, Search, X, Clock, User, Building2, Briefcase, UserCog,
-  Phone, Pencil, Trash2, RotateCcw, CalendarDays, ArrowRight, ChevronDown, Check,
+  Phone, Pencil, Trash2, RotateCcw, CalendarDays, ArrowRight, ChevronRight, PlayCircle, Wrench, CheckCircle2, AlertCircle,
 } from 'lucide-react';
 import Loading from '@/src/app/components/loading';
+import SearchSelect from '@/src/app/components/SearchSelect';
+import Tooltip from '@/src/app/components/Tooltip';
+import { useFormValidation, FieldError, FormErrorBanner, invalidClass } from '@/src/app/components/FormValidation';
 
-type ReservationStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
+// Формын нэг үйлчилгээний мөр. service_id хоосон бол каталогоос устсан (хадгалсан нэрээр үлдэнэ).
+interface ServiceLine {
+  service_id: string;
+  service_name: string;
+  price: number;
+  duration: number | null;
+}
+
+// Олон үйлчилгээтэй бол эхнийхийг нь харуулж, үлдсэн тоог нэмнэ
+const servicesLabel = (services: { service_name: string }[] | undefined) => {
+  const names = services?.map((s) => s.service_name) ?? [];
+  if (names.length === 0) return 'Үйлчилгээ сонгоогүй';
+  return names.length === 1 ? names[0] : `${names[0]} +${names.length - 1}`;
+};
+
+const formatDuration = (minutes: number) => {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return h > 0 ? `${h} цаг${m ? ` ${m} мин` : ''}` : `${m} мин`;
+};
+
+type ReservationStatus = 'pending' | 'confirmed' | 'in_service' | 'completed' | 'cancelled' | 'no_show';
 type CustomerType = 'individual' | 'company';
 
 interface Reservation {
@@ -20,8 +45,8 @@ interface Reservation {
   customer_phone: string | null;
   customer_email: string | null;
   customer_register: string | null;
-  service_id: number | null;
   service_name: string | null;
+  services: { service_id: number | null; service_name: string; price: number; duration: number | null }[];
   assigned_employee: string | null;
   employee_name: string | null;
   reservation_date: string;
@@ -29,6 +54,9 @@ interface Reservation {
   end_time: string | null;
   status: ReservationStatus;
   note: string | null;
+  // Энэ захиалгаас үүссэн ажил ("Ажил эхлүүлэх"-ийн дараа)
+  work_id: string | null;
+  work_status: string | null;
 }
 
 interface OptionData {
@@ -38,39 +66,61 @@ interface OptionData {
   employees: { user_id: string; first_name: string; last_name: string; position: string | null }[];
 }
 
-const STATUS_META: Record<ReservationStatus, { label: string; className: string; dot: string; bar: string }> = {
+const STATUS_META: Record<ReservationStatus, { label: string; description: string; className: string; dot: string; bar: string }> = {
   pending: {
     label: 'Хүлээгдэж буй',
+    description: 'Цаг бүртгэгдсэн ч харилцагч ирэх эсэх нь тодорхойгүй. Харилцагчтай холбогдож ирэх эсэхийг нь тодруулаад «Баталгаажсан» болгоно.',
     className: 'bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-800',
     dot: 'bg-amber-500',
     bar: 'border-l-amber-500',
   },
   confirmed: {
     label: 'Баталгаажсан',
+    description: 'Харилцагчтай холбогдож, ирэх нь тодорхой болсон. Харилцагч ирэхэд «Ажил эхлүүлэх» дарна.',
     className: 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-800',
     dot: 'bg-blue-500',
     bar: 'border-l-blue-500',
   },
+  in_service: {
+    label: 'Ажилд шилжсэн',
+    description: 'Харилцагч ирж, захиалгаас ажил үүссэн. Төлөвийг ажил удирдана: ажил дуусвал автоматаар «Үйлчлүүлсэн» болно.',
+    className: 'bg-violet-50 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400 border-violet-100 dark:border-violet-800',
+    dot: 'bg-violet-500',
+    bar: 'border-l-violet-500',
+  },
   completed: {
     label: 'Үйлчлүүлсэн',
+    description: 'Үйлчилгээ хийгдэж дууссан.',
     className: 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800',
     dot: 'bg-emerald-500',
     bar: 'border-l-emerald-500',
   },
   cancelled: {
     label: 'Цуцлагдсан',
+    description: 'Харилцагч эсвэл байгууллага захиалгыг цуцалсан. Энэ цаг өөр захиалгад чөлөөтэй.',
     className: 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border-rose-100 dark:border-rose-800',
     dot: 'bg-rose-500',
     bar: 'border-l-rose-500',
   },
   no_show: {
     label: 'Ирээгүй',
+    description: 'Харилцагч товлосон цагтаа ирээгүй, урьдчилан мэдэгдээгүй.',
     className: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700',
     dot: 'bg-slate-400',
     bar: 'border-l-slate-300 dark:border-l-slate-600',
   },
 };
 const STATUSES = Object.keys(STATUS_META) as ReservationStatus[];
+// Гараар сонгож болох төлөвүүд — "Ажилд шилжсэн"-ийг зөвхөн "Ажил эхлүүлэх" товч тавина
+const MANUAL_STATUSES = STATUSES.filter((s) => s !== 'in_service');
+// Эдгээр төлөвтэй захиалгаас ажил эхлүүлж болно
+const STARTABLE_STATUSES: ReservationStatus[] = ['pending', 'confirmed'];
+const WORK_STATUS_LABELS: Record<string, string> = {
+  pending: 'Хүлээгдэж буй',
+  in_progress: 'Хийгдэж байна',
+  completed: 'Дууссан',
+  cancelled: 'Цуцлагдсан',
+};
 
 const WEEKDAYS = ['Ням', 'Даваа', 'Мягмар', 'Лхагва', 'Пүрэв', 'Баасан', 'Бямба'];
 
@@ -143,7 +193,7 @@ const digitsOnly = (value: string) => value.replace(/\D/g, '');
 const emptyForm = () => ({
   customer_type: 'individual' as CustomerType,
   customer_id: '',
-  service_id: '',
+  services: [] as ServiceLine[],
   assigned_employee: '',
   reservation_date: localDate(),
   start_time: '',
@@ -157,142 +207,6 @@ const inputClass =
 const filterClass =
   'w-full text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-50/70 dark:bg-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-800 px-3 py-2.5 rounded-xl border border-slate-200/70 dark:border-slate-700 outline-none focus:border-blue-500 transition-all';
 const labelClass = 'text-[10px] font-extrabold text-slate-400 uppercase tracking-wider';
-
-interface PickerOption {
-  id: string;
-  label: string;
-  sub: string;
-  search: string;
-}
-
-// Нэр, утас, регистрээр хайж сонгох боломжтой харилцагч сонгогч
-function CustomerPicker({
-  options,
-  value,
-  onChange,
-  placeholder,
-  fallbackLabel,
-}: {
-  options: PickerOption[];
-  value: string;
-  onChange: (id: string) => void;
-  placeholder: string;
-  fallbackLabel?: string;
-}) {
-  const [query, setQuery] = useState('');
-  const [open, setOpen] = useState(false);
-  const [highlight, setHighlight] = useState(0);
-  const selected = options.find((o) => o.id === value);
-  const listId = useId();
-
-  const matches = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const qDigits = digitsOnly(q);
-    if (!q) return options.slice(0, 50);
-    return options
-      .filter((o) => o.search.includes(q) || (qDigits.length > 0 && digitsOnly(o.search).includes(qDigits)))
-      .slice(0, 50);
-  }, [options, query]);
-
-  const choose = (id: string) => {
-    onChange(id);
-    setQuery('');
-    setOpen(false);
-  };
-
-  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setOpen(true);
-      setHighlight((h) => Math.min(h + 1, matches.length - 1));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setHighlight((h) => Math.max(h - 1, 0));
-    } else if (e.key === 'Enter' && open) {
-      e.preventDefault();
-      if (matches[highlight]) choose(matches[highlight].id);
-    } else if (e.key === 'Escape' && open) {
-      e.stopPropagation();
-      setOpen(false);
-    }
-  };
-
-  return (
-    <div className="relative">
-      <div className={`${inputClass} flex items-center gap-2 p-0! pr-2!`}>
-        <Search size={14} className="text-slate-400 shrink-0 ml-3.5" />
-        <input
-          type="text"
-          value={open ? query : selected ? `${selected.label} · ${selected.sub}` : fallbackLabel ?? ''}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setHighlight(0);
-            setOpen(true);
-          }}
-          onFocus={() => {
-            setQuery('');
-            setOpen(true);
-          }}
-          onBlur={() => setOpen(false)}
-          onKeyDown={onKeyDown}
-          placeholder={placeholder}
-          className="w-full py-3 bg-transparent outline-none text-xs font-bold"
-          role="combobox"
-          aria-expanded={open}
-          aria-controls={listId}
-          aria-autocomplete="list"
-        />
-        {selected && !open ? (
-          <button
-            type="button"
-            onClick={() => onChange('')}
-            className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
-            aria-label="Сонголтыг арилгах"
-          >
-            <X size={14} />
-          </button>
-        ) : (
-          <ChevronDown size={14} className="text-slate-400 shrink-0" />
-        )}
-      </div>
-
-      {open && (
-        <ul
-          id={listId}
-          role="listbox"
-          className="absolute z-10 mt-1 w-full max-h-60 overflow-y-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl py-1"
-        >
-          {matches.length === 0 ? (
-            <li className="px-3.5 py-3 text-xs text-slate-400">Харилцагч олдсонгүй</li>
-          ) : (
-            matches.map((o, i) => (
-              <li
-                key={o.id}
-                role="option"
-                aria-selected={o.id === value}
-                // onBlur-ээс өмнө сонголтыг бүртгэхийн тулд mousedown ашиглана
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  choose(o.id);
-                }}
-                onMouseEnter={() => setHighlight(i)}
-                className={`flex items-center justify-between gap-2 px-3.5 py-2.5 cursor-pointer ${
-                  i === highlight ? 'bg-blue-50 dark:bg-slate-800' : ''
-                }`}
-              >
-                <div className="min-w-0">
-                  <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">{o.label}</p>
-                  <p className="text-[11px] text-slate-400 truncate">{o.sub}</p>
-                </div>
-                {o.id === value && <Check size={14} className="text-blue-600 shrink-0" />}
-              </li>
-            ))
-          )}
-        </ul>
-      )}
-    </div>
-  );
-}
 
 function ReservationsContent() {
   const router = useRouter();
@@ -317,6 +231,15 @@ function ReservationsContent() {
   const [editing, setEditing] = useState<Reservation | null>(null);
   const [formData, setFormData] = useState(emptyForm);
   const [formError, setFormError] = useState('');
+  const { formRef, errors, resetErrors } = useFormValidation();
+  // Алдаатай талбарт улаан хүрээ нэмэх
+  const withError = (base: string, name: string) => (errors[name] ? `${base} ${invalidClass}` : base);
+  const NOTE_MAX = 1000;
+  // Хуудасны дээд хэсэгт гарах мэдэгдэл (alert-ийн оронд)
+  const [notice, setNotice] = useState<{ type: 'success' | 'error'; text: string; href?: string; linkText?: string } | null>(null);
+  // "Ажил эхлүүлэх"-ийг санамсаргүй дарахаас сэргийлж хоёр алхмаар баталгаажуулна
+  const [confirmStartId, setConfirmStartId] = useState<string | null>(null);
+  const [startingId, setStartingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -434,29 +357,64 @@ function ReservationsContent() {
   }, [filtered, descending]);
 
   const todayStats = useMemo(() => {
-    const today = reservations.filter((r) => r.reservation_date === localDate());
+    const todayList = reservations.filter((r) => r.reservation_date === localDate());
+    const now = new Date();
+    const nowTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    // Дараагийн захиалга: өнөөдөр одоогоос хойш эхлэх, цуцлагдаагүй, үйлчлүүлээгүй
+    const next = todayList
+      .filter((r) => (r.status === 'pending' || r.status === 'confirmed') && r.start_time >= nowTime)
+      .sort((a, b) => a.start_time.localeCompare(b.start_time))[0];
+    const count = (status: ReservationStatus) => todayList.filter((r) => r.status === status).length;
     return {
-      total: today.filter((r) => r.status !== 'cancelled').length,
-      pending: today.filter((r) => r.status === 'pending').length,
-      confirmed: today.filter((r) => r.status === 'confirmed').length,
-      completed: today.filter((r) => r.status === 'completed').length,
+      // Цуцлагдсан, ирээгүй захиалгыг "нийт"-д тооцохгүй
+      total: todayList.filter((r) => r.status !== 'cancelled' && r.status !== 'no_show').length,
+      pending: count('pending'),
+      confirmed: count('confirmed'),
+      completed: count('completed'),
+      cancelled: count('cancelled'),
+      noShow: count('no_show'),
+      next,
     };
   }, [reservations]);
 
   const customerOptions = useMemo(
     () => ({
-      individual: options.individuals.map((c) => {
-        const label = `${c.last_name ?? ''} ${c.first_name ?? ''}`.trim();
-        return { id: c.id, label, sub: c.phone || 'Утасгүй', search: `${label} ${c.phone ?? ''}`.toLowerCase() };
-      }),
+      individual: options.individuals.map((c) => ({
+        value: String(c.id),
+        label: `${c.last_name ?? ''} ${c.first_name ?? ''}`.trim(),
+        sub: c.phone || 'Утасгүй',
+      })),
       company: options.companies.map((c) => ({
-        id: c.id,
+        value: String(c.id),
         label: c.name,
         sub: `Регистр: ${c.tax_number}${c.phone ? ` · ${c.phone}` : ''}`,
-        search: `${c.name} ${c.tax_number} ${c.phone ?? ''}`.toLowerCase(),
       })),
     }),
-    [options]
+    [options.individuals, options.companies]
+  );
+
+  const serviceOptions = useMemo(
+    () =>
+      options.services
+        .filter((s) => !formData.services.some((line) => line.service_id === String(s.service_id)))
+        .map((s) => ({
+        value: String(s.service_id),
+        label: s.name,
+        sub: [s.duration ? `${s.duration} мин` : '', s.price ? `${Number(s.price).toLocaleString()} ₮` : '']
+          .filter(Boolean)
+          .join(' · '),
+      })),
+    [options.services, formData.services]
+  );
+
+  const employeeOptions = useMemo(
+    () =>
+      options.employees.map((emp) => ({
+        value: String(emp.user_id),
+        label: `${emp.last_name ?? ''} ${emp.first_name ?? ''}`.trim(),
+        sub: emp.position ?? undefined,
+      })),
+    [options.employees]
   );
 
   const applyPreset = (key: PresetKey) => {
@@ -504,15 +462,25 @@ function ReservationsContent() {
     setEditing(null);
     setFormData({ ...emptyForm(), reservation_date: date && date >= localDate() ? date : localDate() });
     setFormError('');
+    resetErrors();
     setIsModalOpen(true);
   };
 
   const openEdit = (r: Reservation) => {
+    if (r.work_id) {
+      router.push(`/dashboard/workshop/${r.work_id}`);
+      return;
+    }
     setEditing(r);
     setFormData({
       customer_type: r.customer_type,
       customer_id: (r.customer_type === 'company' ? r.company_customer_id : r.customer_id) ?? '',
-      service_id: r.service_id ? String(r.service_id) : '',
+      services: (r.services ?? []).map((line) => ({
+        service_id: line.service_id ? String(line.service_id) : '',
+        service_name: line.service_name,
+        price: Number(line.price) || 0,
+        duration: line.duration,
+      })),
       assigned_employee: r.assigned_employee ?? '',
       reservation_date: r.reservation_date,
       start_time: r.start_time,
@@ -521,6 +489,7 @@ function ReservationsContent() {
       note: r.note ?? '',
     });
     setFormError('');
+    resetErrors();
     setIsModalOpen(true);
   };
 
@@ -530,23 +499,44 @@ function ReservationsContent() {
     formData.customer_type === editing.customer_type &&
     !formData.customer_id;
 
-  // Үйлчилгээ сонгоход үргэлжлэх хугацаагаар дуусах цагийг санал болгоно
-  const suggestEndTime = (start: string, serviceId: string) => {
-    const service = options.services.find((s) => String(s.service_id) === serviceId);
-    if (!start || !service?.duration) return '';
+  // Үйлчилгээнүүдийн нийт үргэлжлэх хугацаагаар дуусах цагийг санал болгоно
+  const suggestEndTime = (start: string, lines: ServiceLine[]) => {
+    const duration = lines.reduce((sum, l) => sum + (l.duration ?? 0), 0);
+    if (!start || duration <= 0) return '';
     const [h, m] = start.split(':').map(Number);
-    const total = h * 60 + m + Number(service.duration);
+    const total = h * 60 + m + duration;
     if (total >= 24 * 60) return '';
     return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
   };
 
+  const setServices = (lines: ServiceLine[]) =>
+    setFormData({ ...formData, services: lines, end_time: suggestEndTime(formData.start_time, lines) || formData.end_time });
+
+  const addService = (id: string) => {
+    const service = options.services.find((s) => String(s.service_id) === id);
+    if (!service) return;
+    setServices([
+      ...formData.services,
+      { service_id: id, service_name: service.name, price: Number(service.price) || 0, duration: Number(service.duration) > 0 ? Number(service.duration) : null },
+    ]);
+  };
+
+  const removeService = (index: number) => setServices(formData.services.filter((_, i) => i !== index));
+
+  const servicesDuration = formData.services.reduce((sum, l) => sum + (l.duration ?? 0), 0);
+  const servicesPrice = formData.services.reduce((sum, l) => sum + l.price, 0);
+
+  // Дуусах цаг эхлэх цагаас дор хаяж 1 минутын дараа байх ёстой
+  const minEndTime = (() => {
+    if (!formData.start_time) return undefined;
+    const [h, m] = formData.start_time.split(':').map(Number);
+    const total = h * 60 + m + 1;
+    return total >= 24 * 60 ? '23:59' : `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+  })();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError('');
-    if (!formData.customer_id && !customerMissing) {
-      setFormError('Харилцагчаа сонгоно уу.');
-      return;
-    }
     try {
       setSaving(true);
       const res = await fetch(editing ? `/api/reservations/${editing.reservation_id}` : '/api/reservations', {
@@ -584,7 +574,41 @@ function ReservationsContent() {
       setReservations((list) =>
         list.map((x) => (x.reservation_id === r.reservation_id ? { ...x, status: previous } : x))
       );
-      alert(err instanceof Error && err.message ? err.message : 'Төлөв шинэчлэхэд алдаа гарлаа');
+      setNotice({ type: 'error', text: err instanceof Error && err.message ? err.message : 'Төлөв шинэчлэхэд алдаа гарлаа' });
+    }
+  };
+
+  // Харилцагч ирэхэд: захиалгын мэдээллээр ажил үүсгэж, хариуцсан ажилтанд имэйлээр мэдэгдэнэ
+  const startWork = async (r: Reservation) => {
+    setConfirmStartId(null);
+    setStartingId(r.reservation_id);
+    setNotice(null);
+    try {
+      const res = await fetch(`/api/reservations/${r.reservation_id}/start-work`, { method: 'POST' });
+      const result = await res.json();
+      if (result.success) {
+        const { work_id, employee_name, employee_email, email_sent } = result.data;
+        setNotice({
+          type: 'success',
+          text: email_sent
+            ? `${r.customer_name}-ийн ажил үүслээ. ${employee_name} (${employee_email})-д имэйлээр мэдэгдэл илгээлээ.`
+            : `${r.customer_name}-ийн ажил үүслээ. Гэхдээ ${employee_name}-д имэйл илгээж чадсангүй — ажилтанд өөрөө мэдэгдэнэ үү.`,
+          href: `/dashboard/workshop/${work_id}`,
+          linkText: 'Ажлыг нээх',
+        });
+      } else {
+        setNotice({
+          type: 'error',
+          text: result.error || 'Ажил үүсгэхэд алдаа гарлаа',
+          ...(result.data?.work_id ? { href: `/dashboard/workshop/${result.data.work_id}`, linkText: 'Ажлыг нээх' } : {}),
+        });
+      }
+      await fetchReservations();
+    } catch (err) {
+      console.error('Start work failed:', err);
+      setNotice({ type: 'error', text: 'Сервертэй холбогдоход алдаа гарлаа. Дахин оролдоно уу.' });
+    } finally {
+      setStartingId(null);
     }
   };
 
@@ -623,29 +647,105 @@ function ReservationsContent() {
         </button>
       </div>
 
-      {/* Өнөөдрийн тойм — дарахад өнөөдрийн захиалгыг тухайн төлөвөөр шүүнэ */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {[
-          { label: 'Өнөөдрийн захиалга', value: todayStats.total, status: 'all', color: 'text-slate-900 dark:text-white' },
-          { label: 'Хүлээгдэж буй', value: todayStats.pending, status: 'pending', color: 'text-amber-600 dark:text-amber-400' },
-          { label: 'Баталгаажсан', value: todayStats.confirmed, status: 'confirmed', color: 'text-blue-600 dark:text-blue-400' },
-          { label: 'Үйлчлүүлсэн', value: todayStats.completed, status: 'completed', color: 'text-emerald-600 dark:text-emerald-400' },
-        ].map((s) => {
-          const active = activePreset === 'today' && statusFilter === s.status;
-          return (
-            <button
-              key={s.label}
-              onClick={() => showToday(s.status)}
-              className={`text-left bg-white dark:bg-slate-900 p-4 rounded-2xl border shadow-2xs transition-all cursor-pointer hover:border-blue-300 dark:hover:border-slate-600 ${
-                active ? 'border-blue-500 ring-2 ring-blue-500/15' : 'border-slate-100 dark:border-slate-800'
-              }`}
-            >
-              <p className={labelClass}>{s.label}</p>
-              <p className={`text-2xl font-black mt-1 ${s.color}`}>{loading ? '–' : s.value}</p>
-            </button>
-          );
-        })}
-      </div>
+      {/* Өнөөдрийн тойм — карт дээр дарахад доорх жагсаалт өнөөдрийн захиалгыг тухайн төлөвөөр шүүнэ */}
+      <section className="space-y-3" aria-labelledby="today-heading">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-1.5 px-1">
+          <div>
+            <h2 id="today-heading" className="text-sm font-black text-slate-900 dark:text-white">
+              Өнөөдөр · {formatDateHeading(today).replace('Өнөөдөр · ', '')}
+            </h2>
+            <p className="text-[11px] text-slate-400">Карт дээр дарж өнөөдрийн захиалгыг тухайн төлөвөөр харна</p>
+          </div>
+          {!loading && (
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {todayStats.next ? (
+                <>
+                  Дараагийн захиалга:{' '}
+                  <button
+                    type="button"
+                    onClick={() => openEdit(todayStats.next!)}
+                    className="font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                  >
+                    {todayStats.next.start_time} · {todayStats.next.customer_name}
+                  </button>
+                </>
+              ) : todayStats.total > 0 ? (
+                'Өнөөдөр цаашид хүлээгдэж буй захиалга алга'
+              ) : (
+                'Өнөөдөр захиалга алга'
+              )}
+            </p>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {[
+            {
+              label: 'Нийт захиалга',
+              value: todayStats.total,
+              status: 'all',
+              color: 'text-slate-900 dark:text-white',
+              dot: 'bg-slate-400',
+              hint:
+                todayStats.cancelled + todayStats.noShow > 0
+                  ? `${[todayStats.cancelled > 0 && `цуцлагдсан ${todayStats.cancelled}`, todayStats.noShow > 0 && `ирээгүй ${todayStats.noShow}`].filter(Boolean).join(", ")} захиалгыг тооцоогүй`
+                  : 'Өнөөдөр үйлчлүүлэх бүх захиалга',
+            },
+            {
+              label: 'Баталгаажуулах',
+              value: todayStats.pending,
+              status: 'pending',
+              color: 'text-amber-600 dark:text-amber-400',
+              dot: STATUS_META.pending.dot,
+              hint: todayStats.pending > 0 ? 'Хүлээгдэж буй — харилцагчтай холбогдож баталгаажуулна уу' : 'Баталгаажуулах захиалга алга',
+            },
+            {
+              label: 'Ирэхийг хүлээж буй',
+              value: todayStats.confirmed,
+              status: 'confirmed',
+              color: 'text-blue-600 dark:text-blue-400',
+              dot: STATUS_META.confirmed.dot,
+              hint: 'Баталгаажсан, харилцагч хараахан ирээгүй',
+            },
+            {
+              label: 'Үйлчлүүлсэн',
+              value: todayStats.completed,
+              status: 'completed',
+              color: 'text-emerald-600 dark:text-emerald-400',
+              dot: STATUS_META.completed.dot,
+              hint: todayStats.total > 0 ? `Өнөөдрийн ${todayStats.total} захиалгаас ${todayStats.completed} нь дууссан` : 'Өнөөдөр үйлчилгээ хийгдээгүй',
+              progress: todayStats.total > 0 ? (todayStats.completed / todayStats.total) * 100 : 0,
+            },
+          ].map((s) => {
+            const active = activePreset === 'today' && statusFilter === s.status;
+            return (
+              <button
+                key={s.label}
+                onClick={() => showToday(s.status)}
+                aria-pressed={active}
+                className={`group text-left bg-white dark:bg-slate-900 p-4 rounded-2xl border shadow-2xs transition-all cursor-pointer hover:border-blue-300 dark:hover:border-slate-600 flex flex-col ${
+                  active ? 'border-blue-500 ring-2 ring-blue-500/15' : 'border-slate-100 dark:border-slate-800'
+                }`}
+              >
+                <span className="flex items-center justify-between gap-2">
+                  <span className={`${labelClass} flex items-center gap-1.5`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} aria-hidden />
+                    {s.label}
+                  </span>
+                  <ChevronRight size={14} className="text-slate-300 dark:text-slate-600 group-hover:text-blue-500 transition-colors" aria-hidden />
+                </span>
+                <span className={`text-2xl font-black mt-1 tabular-nums ${s.color}`}>{loading ? '–' : s.value}</span>
+                {'progress' in s && s.progress !== undefined && (
+                  <span className="mt-1.5 h-1 rounded bg-slate-100 dark:bg-slate-800 overflow-hidden" aria-hidden>
+                    <span className="block h-full rounded bg-emerald-500" style={{ width: `${s.progress}%` }} />
+                  </span>
+                )}
+                <span className="mt-1.5 text-[11px] leading-snug text-slate-500 dark:text-slate-400">{loading ? '' : s.hint}</span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
 
       {/* Шүүлтүүр */}
       <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-100 dark:border-slate-800 shadow-2xs space-y-4">
@@ -738,8 +838,8 @@ function ReservationsContent() {
           {(['all', ...STATUSES] as const).map((s) => {
             const active = statusFilter === s;
             return (
+              <Tooltip key={s} className="shrink-0" text={s === 'all' ? 'Бүх төлөвийн захиалгыг харуулна' : STATUS_META[s].description}>
               <button
-                key={s}
                 onClick={() => setStatusFilter(s)}
                 className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   active
@@ -753,6 +853,7 @@ function ReservationsContent() {
                   {statusCounts[s]}
                 </span>
               </button>
+              </Tooltip>
             );
           })}
         </div>
@@ -779,6 +880,33 @@ function ReservationsContent() {
           </div>
         )}
       </div>
+
+      {notice && (
+            <div
+              role={notice.type === 'error' ? 'alert' : 'status'}
+              className={`flex items-start gap-2.5 px-4 py-3 rounded-2xl border text-xs font-bold ${
+                notice.type === 'error'
+                  ? 'border-rose-200 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300'
+                  : 'border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
+              }`}
+            >
+              {notice.type === 'error' ? <AlertCircle size={16} className="shrink-0" /> : <CheckCircle2 size={16} className="shrink-0" />}
+              <p className="flex-1 leading-relaxed">
+                {notice.text}
+                {notice.href && (
+                  <>
+                    {' '}
+                    <Link href={notice.href} className="underline underline-offset-2 whitespace-nowrap">
+                      {notice.linkText ?? 'Нээх'} →
+                    </Link>
+                  </>
+                )}
+              </p>
+              <button type="button" onClick={() => setNotice(null)} className="p-0.5 rounded opacity-60 hover:opacity-100 cursor-pointer" aria-label="Хаах">
+                <X size={14} />
+              </button>
+            </div>
+          )}
 
       {/* Жагсаалт */}
       {loading ? (
@@ -874,7 +1002,7 @@ function ReservationsContent() {
                           </a>
                         )}
                         <span className="inline-flex items-center gap-1">
-                          <Briefcase size={11} /> {r.service_name || 'Үйлчилгээ сонгоогүй'}
+                          <Briefcase size={11} /> {servicesLabel(r.services)}
                         </span>
                         <span className="inline-flex items-center gap-1">
                           <UserCog size={11} />
@@ -884,17 +1012,66 @@ function ReservationsContent() {
                       {r.note && <p className="text-[11px] text-slate-400 line-clamp-1">{r.note}</p>}
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center gap-2 shrink-0 flex-wrap" onClick={(e) => e.stopPropagation()}>
+                      {r.work_id ? (
+                        // Ажилд шилжсэн: төлөвийг ажил удирдана
+                        <Tooltip text={STATUS_META.in_service.description}>
+                        <Link
+                          href={`/dashboard/workshop/${r.work_id}`}
+                          className={`inline-flex items-center gap-1.5 text-[11px] font-extrabold px-2.5 py-1.5 rounded-full border hover:underline ${STATUS_META.in_service.className}`}
+                          aria-label="Энэ захиалгаас үүссэн ажлыг нээх"
+                        >
+                          <Wrench size={12} aria-hidden />
+                          Ажил: {WORK_STATUS_LABELS[r.work_status ?? ''] ?? r.work_status}
+                          <ChevronRight size={12} aria-hidden />
+                        </Link>
+                        </Tooltip>
+                      ) : (
+                      <>
+                      {STARTABLE_STATUSES.includes(r.status) && r.reservation_date <= today && (
+                        confirmStartId === r.reservation_id ? (
+                          <span className="inline-flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => startWork(r)}
+                              className="inline-flex items-center gap-1 text-[11px] font-extrabold px-2.5 py-1.5 rounded-full bg-violet-600 hover:bg-violet-700 text-white cursor-pointer"
+                            >
+                              <CheckCircle2 size={12} aria-hidden /> Тийм, эхлүүлэх
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setConfirmStartId(null)}
+                              className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                              aria-label="Болих"
+                            >
+                              <X size={12} />
+                            </button>
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setConfirmStartId(r.reservation_id)}
+                            disabled={startingId === r.reservation_id}
+                            className="inline-flex items-center gap-1 text-[11px] font-extrabold px-2.5 py-1.5 rounded-full border border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-950/40 hover:bg-violet-100 dark:hover:bg-violet-950 disabled:opacity-50 cursor-pointer"
+                            title="Харилцагч ирсэн: захиалгын мэдээллээр ажил үүсгэж, хариуцах ажилтанд имэйлээр мэдэгдэнэ"
+                          >
+                            <PlayCircle size={12} aria-hidden />
+                            {startingId === r.reservation_id ? 'Үүсгэж байна...' : 'Ажил эхлүүлэх'}
+                          </button>
+                        )
+                      )}
+                      <Tooltip text={STATUS_META[r.status].description}>
                       <select
                         value={r.status}
                         onChange={(e) => handleStatusChange(r, e.target.value as ReservationStatus)}
                         className={`text-[11px] font-extrabold px-2.5 py-1.5 rounded-full border outline-none cursor-pointer ${STATUS_META[r.status].className}`}
                         aria-label="Төлөв солих"
                       >
-                        {STATUSES.map((value) => (
+                        {MANUAL_STATUSES.map((value) => (
                           <option key={value} value={value}>{STATUS_META[value].label}</option>
                         ))}
                       </select>
+                      </Tooltip>
                       <button
                         onClick={() => openEdit(r)}
                         className="p-2 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
@@ -902,6 +1079,8 @@ function ReservationsContent() {
                       >
                         <Pencil size={15} />
                       </button>
+                      </>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -936,7 +1115,7 @@ function ReservationsContent() {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5">Харилцагч *</label>
                 <div className="grid grid-cols-2 gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl mb-2">
@@ -956,36 +1135,85 @@ function ReservationsContent() {
                     </button>
                   ))}
                 </div>
-                <CustomerPicker
+                <SearchSelect
                   key={formData.customer_type}
+                  required={!customerMissing}
+                  requiredMessage="Харилцагчаа сонгоно уу."
+                  name="customer_id"
+                  invalid={!!errors.customer_id}
                   options={customerOptions[formData.customer_type]}
                   value={formData.customer_id}
                   onChange={(id) => setFormData({ ...formData, customer_id: id })}
                   placeholder={formData.customer_type === 'individual' ? 'Нэр эсвэл утасны дугаараар хайх...' : 'Нэр, регистр эсвэл утсаар хайх...'}
+                  emptyText="Харилцагч олдсонгүй"
                   fallbackLabel={customerMissing ? `${editing?.customer_name} (хадгалсан)` : undefined}
+                  className="py-0.5 dark:bg-slate-800!"
+                  aria-label="Харилцагч"
                 />
+                <FieldError message={errors.customer_id} />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Үйлчилгээ</label>
-                <select
-                  value={formData.service_id}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      service_id: e.target.value,
-                      end_time: suggestEndTime(formData.start_time, e.target.value) || formData.end_time,
-                    })
-                  }
-                  className={`${inputClass} cursor-pointer`}
-                >
-                  <option value="">-- Үйлчилгээ сонгох --</option>
-                  {options.services.map((s) => (
-                    <option key={s.service_id} value={s.service_id}>
-                      {s.name}{s.duration ? ` · ${s.duration} мин` : ''}
-                    </option>
-                  ))}
-                </select>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300">Үйлчилгээнүүд *</label>
+                  {formData.services.length > 0 && (
+                    <span className="text-[11px] font-bold text-slate-400">{formData.services.length} үйлчилгээ</span>
+                  )}
+                </div>
+                {formData.services.length > 0 && (
+                  <div className="mb-2 rounded-xl border border-slate-200 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-800">
+                    {formData.services.map((line, i) => (
+                      <div key={`${line.service_id || line.service_name}-${i}`} className="flex items-center gap-2 px-3 py-2">
+                        <Briefcase size={13} className="text-slate-400 shrink-0" />
+                        <span className="flex-1 min-w-0 text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
+                          {line.service_name}
+                          {!line.service_id && (
+                            <span className="ml-1.5 text-[9px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 font-semibold">устсан</span>
+                          )}
+                        </span>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400 tabular-nums whitespace-nowrap">
+                          {line.duration ? formatDuration(line.duration) : '—'}
+                        </span>
+                        <span className="w-24 text-right text-xs font-bold text-slate-900 dark:text-white tabular-nums whitespace-nowrap">
+                          {line.price.toLocaleString()} ₮
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeService(i)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                          aria-label={`${line.service_name} хасах`}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                    <div className="flex items-center justify-between gap-2 px-3 py-2.5 bg-slate-50/70 dark:bg-slate-800/40 rounded-b-xl text-xs">
+                      <span className="font-bold text-slate-500 dark:text-slate-400">
+                        Нийт{servicesDuration > 0 && <> · <span className="text-slate-800 dark:text-slate-200">{formatDuration(servicesDuration)}</span></>}
+                      </span>
+                      <span className="text-sm font-black text-blue-600 dark:text-blue-400 tabular-nums">{servicesPrice.toLocaleString()} ₮</span>
+                    </div>
+                  </div>
+                )}
+                <SearchSelect
+                  options={serviceOptions}
+                  value=""
+                  onChange={addService}
+                  clearable={false}
+                  required={formData.services.length === 0}
+                  requiredMessage="Дор хаяж нэг үйлчилгээ сонгоно уу."
+                  name="services"
+                  invalid={formData.services.length === 0 && !!errors.services}
+                  placeholder={formData.services.length > 0 ? 'Өөр үйлчилгээ нэмэх...' : 'Үйлчилгээ хайж нэмэх...'}
+                  emptyText={options.services.length > 0 && serviceOptions.length === 0 ? 'Бүх үйлчилгээг нэмсэн байна' : 'Үйлчилгээ олдсонгүй'}
+                  className="py-0.5 dark:bg-slate-800!"
+                  aria-label="Үйлчилгээ нэмэх"
+                />
+                {/* Үйлчилгээ нэмэгдмэгц нуугдмал талбар алга болдог тул алдааг энд шүүнэ */}
+                {formData.services.length === 0 && <FieldError message={errors.services} />}
+                {servicesDuration > 0 && (
+                  <p className="mt-1 text-[11px] text-slate-400">Дуусах цагийг үйлчилгээнүүдийн нийт хугацаагаар автоматаар бодно.</p>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -994,54 +1222,68 @@ function ReservationsContent() {
                   <input
                     type="date"
                     required
+                    name="reservation_date"
+                    data-required-message="Захиалгын өдрөө сонгоно уу."
+                    // Шинэ захиалгыг өнгөрсөн өдөрт бүртгэхгүй (засахдаа хуучин огноог хэвээр үлдээж болно)
+                    min={editing ? undefined : localDate()}
+                    data-min-message="Өнгөрсөн өдөрт захиалга бүртгэх боломжгүй."
                     value={formData.reservation_date}
                     onChange={(e) => setFormData({ ...formData, reservation_date: e.target.value })}
-                    className={inputClass}
+                    className={withError(inputClass, 'reservation_date')}
                   />
+                  <FieldError message={errors.reservation_date} />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Эхлэх цаг *</label>
                   <input
                     type="time"
                     required
+                    name="start_time"
+                    data-required-message="Эхлэх цагаа оруулна уу."
                     value={formData.start_time}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
                         start_time: e.target.value,
-                        end_time: suggestEndTime(e.target.value, formData.service_id) || formData.end_time,
+                        end_time: suggestEndTime(e.target.value, formData.services) || formData.end_time,
                       })
                     }
-                    className={inputClass}
+                    className={withError(inputClass, 'start_time')}
                   />
+                  <FieldError message={errors.start_time} />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Дуусах цаг</label>
                   <input
                     type="time"
+                    name="end_time"
                     value={formData.end_time}
-                    min={formData.start_time || undefined}
+                    min={minEndTime}
+                    data-min-message="Дуусах цаг эхлэх цагаас хойш байх ёстой."
                     onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
-                    className={inputClass}
+                    className={withError(inputClass, 'end_time')}
                   />
+                  <FieldError message={errors.end_time} />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Хариуцах ажилтан</label>
-                  <select
+                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Хариуцах ажилтан *</label>
+                  <SearchSelect
+                    required
+                    requiredMessage="Хариуцах ажилтнаа сонгоно уу."
+                    name="assigned_employee"
+                    invalid={!!errors.assigned_employee}
+                    options={employeeOptions}
                     value={formData.assigned_employee}
-                    onChange={(e) => setFormData({ ...formData, assigned_employee: e.target.value })}
-                    className={`${inputClass} cursor-pointer`}
-                  >
-                    <option value="">-- Сонгох --</option>
-                    {options.employees.map((emp) => (
-                      <option key={emp.user_id} value={emp.user_id}>
-                        {emp.last_name} {emp.first_name}{emp.position ? ` (${emp.position})` : ''}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(id) => setFormData({ ...formData, assigned_employee: id })}
+                    placeholder="Ажилтан хайх..."
+                    emptyText="Ажилтан олдсонгүй"
+                    className="py-0.5 dark:bg-slate-800!"
+                    aria-label="Хариуцах ажилтан"
+                  />
+                  <FieldError message={errors.assigned_employee} />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Төлөв</label>
@@ -1050,16 +1292,26 @@ function ReservationsContent() {
                     onChange={(e) => setFormData({ ...formData, status: e.target.value as ReservationStatus })}
                     className={`${inputClass} cursor-pointer`}
                   >
-                    {STATUSES.map((value) => (
+                    {MANUAL_STATUSES.map((value) => (
                       <option key={value} value={value}>{STATUS_META[value].label}</option>
                     ))}
                   </select>
+                  <p className="mt-1 text-[11px] leading-snug text-slate-500 dark:text-slate-400">{STATUS_META[formData.status].description}</p>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Тэмдэглэл</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300">Тэмдэглэл</label>
+                  {formData.note.length > NOTE_MAX * 0.8 && (
+                    <span className={`text-[11px] font-bold tabular-nums ${formData.note.length >= NOTE_MAX ? 'text-rose-500' : 'text-slate-400'}`}>
+                      {formData.note.length} / {NOTE_MAX}
+                    </span>
+                  )}
+                </div>
                 <textarea
+                  name="note"
+                  maxLength={NOTE_MAX}
                   value={formData.note}
                   onChange={(e) => setFormData({ ...formData, note: e.target.value })}
                   placeholder="Нэмэлт мэдээлэл..."
@@ -1068,11 +1320,7 @@ function ReservationsContent() {
                 />
               </div>
 
-              {formError && (
-                <p className="text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 px-3.5 py-2.5 rounded-xl">
-                  {formError}
-                </p>
-              )}
+              <FormErrorBanner message={formError} onClose={() => setFormError('')} />
 
               <div className="flex items-center justify-between gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
                 <div>

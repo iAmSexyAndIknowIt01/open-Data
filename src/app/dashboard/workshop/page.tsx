@@ -1,34 +1,134 @@
 'use client';
 
-import { useState, useEffect, useRef, Suspense } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { 
-  Wrench, Plus, Search, Clock, CheckCircle2, 
-  X, LayoutList, LayoutGrid, User, Briefcase, ShieldAlert, RotateCcw, ChevronLeft, ChevronRight 
+import {
+  Wrench, Plus, Search, Clock, CheckCircle2,
+  X, LayoutList, LayoutGrid, User, Briefcase, ShieldAlert, RotateCcw, ChevronLeft, ChevronRight,
+  SlidersHorizontal, ChevronDown, ArrowRight
 } from 'lucide-react';
 import Loading from '@/src/app/components/loading';
+import SearchSelect from '@/src/app/components/SearchSelect';
+import { useFormValidation, FormErrorBanner } from '@/src/app/components/FormValidation';
+import WorkFormFields, { emptyWorkForm, type WorkFormData, type WorkOptionData } from './WorkFormFields';
 
 interface WorkItem {
   work_id: string;
   title: string;
   customer_type: 'individual' | 'company';
+  customer_id: string | null;
+  company_customer_id: string | null;
   customer_name: string;
-  service_name: string;
+  service_name: string | null;
+  services: { service_id: number | null; service_name: string }[];
   assigned_employee: string;
   employee_name: string;
   price: number;
   status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
   priority: 'low' | 'medium' | 'high';
   due_date: string;
+  create_date: string;
   description: string;
 }
 
-interface OptionData {
-  individuals: { id: string; first_name: string; last_name: string; phone: string }[];
-  companies: { id: string; name: string; tax_number: string; phone: string }[];
-  services: { service_id: number; name: string; price: number; duration: number }[];
-  employees: { user_id: string; first_name: string; last_name: string; email: string }[];
+const serviceLabel = (work: WorkItem) => {
+  const names = work.services?.map((s) => s.service_name) ?? [];
+  if (names.length === 0) return 'Үйлчилгээ сонгоогүй';
+  return names.length === 1 ? names[0] : `${names[0]} +${names.length - 1}`;
+};
+
+// ---- Шүүлтүүр ----
+
+interface Filters {
+  q: string;
+  status: string;
+  priority: string;
+  customerType: string;
+  employee: string; // 'all' | 'none' (хуваарилаагүй) | user_id
+  service: string; // service_id
+  customer: string; // 'i:<customer_id>' | 'c:<company_customer_id>'
+  due: string; // 'all' | 'overdue' | 'today' | 'week' | 'month' | 'none' | 'custom'
+  dueFrom: string;
+  dueTo: string;
+  createdFrom: string;
+  createdTo: string;
+  priceMin: string;
+  priceMax: string;
+  sort: string;
 }
+
+const DEFAULT_FILTERS: Filters = {
+  q: '',
+  status: 'all',
+  priority: 'all',
+  customerType: 'all',
+  employee: 'all',
+  service: '',
+  customer: '',
+  due: 'all',
+  dueFrom: '',
+  dueTo: '',
+  createdFrom: '',
+  createdTo: '',
+  priceMin: '',
+  priceMax: '',
+  sort: 'newest',
+};
+const FILTER_KEYS = Object.keys(DEFAULT_FILTERS) as (keyof Filters)[];
+// "Нэмэлт шүүлтүүр" хэсэгт байрлах талбарууд
+const ADVANCED_KEYS: (keyof Filters)[] = ['service', 'customer', 'due', 'dueFrom', 'dueTo', 'createdFrom', 'createdTo', 'priceMin', 'priceMax'];
+
+const STATUS_LABELS: Record<string, string> = {
+  pending: 'Хүлээгдэж буй',
+  in_progress: 'Хийгдэж байна',
+  completed: 'Дууссан',
+  cancelled: 'Цуцлагдсан',
+};
+const PRIORITY_LABELS: Record<string, string> = { low: 'Энгийн', medium: 'Дунд', high: 'Яаралтай' };
+const DUE_LABELS: Record<string, string> = {
+  overdue: 'Хугацаа хэтэрсэн',
+  today: 'Өнөөдөр дуусах',
+  week: 'Энэ 7 хоногт дуусах',
+  month: 'Энэ сард дуусах',
+  none: 'Хугацаагүй',
+  custom: 'Хугацааны интервал',
+};
+const SORT_LABELS: Record<string, string> = {
+  newest: 'Шинээр бүртгэсэн',
+  oldest: 'Хуучнаар бүртгэсэн',
+  due: 'Дуусах хугацаа ойр',
+  price_desc: 'Үнэ их → бага',
+  price_asc: 'Үнэ бага → их',
+};
+
+// Хэрэглэгчийн орон нутгийн цагаар YYYY-MM-DD
+const toISODate = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const workDate = (value: string | null | undefined) => (value ? toISODate(new Date(value)) : '');
+const formatDate = (iso: string) => iso.replaceAll('-', '.');
+
+function currentRanges() {
+  const now = new Date();
+  const mondayOffset = (now.getDay() + 6) % 7;
+  const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - mondayOffset);
+  const sunday = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 6);
+  return {
+    today: toISODate(now),
+    weekStart: toISODate(monday),
+    weekEnd: toISODate(sunday),
+    monthStart: toISODate(new Date(now.getFullYear(), now.getMonth(), 1)),
+    monthEnd: toISODate(new Date(now.getFullYear(), now.getMonth() + 1, 0)),
+  };
+}
+
+const isOpenWork = (w: WorkItem) => w.status !== 'completed' && w.status !== 'cancelled';
+
+const filterSelectClass =
+  'w-full text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-50/70 dark:bg-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-800 px-3 py-2 rounded-xl border border-slate-200/70 dark:border-slate-700 outline-none cursor-pointer focus:border-blue-500 transition-all';
+const filterInputClass =
+  'w-full min-w-0 text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-50/70 dark:bg-slate-800/60 px-3 py-2 rounded-xl border border-slate-200/70 dark:border-slate-700 outline-none focus:border-blue-500 transition-all';
+const filterLabelClass = 'text-[10px] font-extrabold text-slate-400 uppercase tracking-wider';
+const searchSelectFilterClass = 'px-3! bg-slate-50/70! dark:bg-slate-800/60! border-slate-200/70!';
 
 // 1. Үндсэн логик бүхий компонентоо тусад нь салгах (WorkshopContent)
 function WorkshopContent() {
@@ -36,15 +136,21 @@ function WorkshopContent() {
   const searchParams = useSearchParams();
 
   const [works, setWorks] = useState<WorkItem[]>([]);
-  const [options, setOptions] = useState<OptionData>({ individuals: [], companies: [], services: [], employees: [] });
+  const [options, setOptions] = useState<WorkOptionData>({ individuals: [], companies: [], services: [], employees: [] });
   const [loading, setLoading] = useState(true);
-  
-  // Filter states (URL-аас эхлүүлнэ, ингэснээр дэлгэрэнгүй хуудаснаас буцахад хадгалагдана)
-  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q') || '');
-  const [statusFilter, setStatusFilter] = useState<string>(() => searchParams.get('status') || 'all');
-  const [priorityFilter, setPriorityFilter] = useState<string>(() => searchParams.get('priority') || 'all');
-  const [customerTypeFilter, setCustomerTypeFilter] = useState<string>(() => searchParams.get('customerType') || 'all');
-  const [employeeFilter, setEmployeeFilter] = useState<string>(() => searchParams.get('employee') || 'all');
+
+  // Шүүлтүүр (URL-аас эхлүүлнэ, ингэснээр дэлгэрэнгүй хуудаснаас буцахад хадгалагдана)
+  const [filters, setFilters] = useState<Filters>(() => {
+    const initial = { ...DEFAULT_FILTERS };
+    for (const key of FILTER_KEYS) {
+      const value = searchParams.get(key);
+      if (value !== null) initial[key] = value;
+    }
+    return initial;
+  });
+  const [showAdvanced, setShowAdvanced] = useState(() =>
+    ADVANCED_KEYS.some((key) => searchParams.get(key) !== null)
+  );
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(() => {
@@ -53,22 +159,25 @@ function WorkshopContent() {
   });
   const itemsPerPage = 9;
 
+  // Шүүлтүүр өөрчлөгдөхөд эхний хуудас руу буцна
+  const setFilter = <K extends keyof Filters>(key: K, value: Filters[K]) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
+    setCurrentPage(1);
+  };
+
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const { formRef, errors, resetErrors } = useFormValidation();
+
+  const openModal = () => {
+    resetErrors();
+    setSubmitError('');
+    setIsModalOpen(true);
+  };
   const [saving, setSaving] = useState(false);
 
-  const [formData, setFormData] = useState({
-    title: '',
-    customer_type: 'individual' as 'individual' | 'company',
-    customer_id: '',
-    service_id: '',
-    assigned_employee: '',
-    price: '',
-    status: 'pending',
-    priority: 'medium',
-    due_date: '',
-    description: ''
-  });
+  const [formData, setFormData] = useState<WorkFormData>(emptyWorkForm);
 
   const fetchData = async () => {
     try {
@@ -95,48 +204,27 @@ function WorkshopContent() {
     fetchData();
   }, []);
 
-  // Шүүлтүүр болон хуудасны төлөвийг URL-тай синк хийх.
-  // Хуудсыг зөвхөн шүүлтүүр бодитоор өөрчлөгдсөн үед 1 болгоно (mount үед биш).
-  const filterKey = JSON.stringify([searchQuery, statusFilter, priorityFilter, customerTypeFilter, employeeFilter]);
-  const prevFilterKey = useRef(filterKey);
-
+  // Шүүлтүүр болон хуудасны төлөвийг URL-тай синк хийх (зөвхөн анхдагчаас өөр утгуудыг)
   useEffect(() => {
-    const filtersChanged = prevFilterKey.current !== filterKey;
-    prevFilterKey.current = filterKey;
-
-    const page = filtersChanged ? 1 : currentPage;
-    if (filtersChanged) setCurrentPage(1);
-
     const params = new URLSearchParams();
-    if (searchQuery) params.set('q', searchQuery);
-    if (statusFilter !== 'all') params.set('status', statusFilter);
-    if (priorityFilter !== 'all') params.set('priority', priorityFilter);
-    if (customerTypeFilter !== 'all') params.set('customerType', customerTypeFilter);
-    if (employeeFilter !== 'all') params.set('employee', employeeFilter);
-    if (page > 1) params.set('page', page.toString());
+    for (const key of FILTER_KEYS) {
+      if (filters[key] !== DEFAULT_FILTERS[key]) params.set(key, filters[key]);
+    }
+    if (currentPage > 1) params.set('page', currentPage.toString());
 
     const query = params.toString();
     if (query !== searchParams.toString()) {
       router.replace(`/dashboard/workshop${query ? `?${query}` : ''}`, { scroll: false });
     }
-  }, [filterKey, currentPage]);
+  }, [filters, currentPage, router, searchParams]);
 
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
   };
 
-  const handleServiceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const sId = e.target.value;
-    const selectedService = options.services.find(s => s.service_id.toString() === sId);
-    setFormData({
-      ...formData,
-      service_id: sId,
-      price: selectedService ? selectedService.price.toString() : formData.price
-    });
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitError('');
     try {
       setSaving(true);
       const res = await fetch('/api/workshop', {
@@ -147,58 +235,203 @@ function WorkshopContent() {
       const result = await res.json();
       if (result.success) {
         setIsModalOpen(false);
-        setFormData({
-          title: '',
-          customer_type: 'individual',
-          customer_id: '',
-          service_id: '',
-          assigned_employee: '',
-          price: '',
-          status: 'pending',
-          priority: 'medium',
-          due_date: '',
-          description: ''
-        });
+        setFormData(emptyWorkForm());
         fetchData();
       } else {
-        alert(result.error || 'Хадгалахад алдаа гарлаа');
+        setSubmitError(result.error || 'Хадгалахад алдаа гарлаа.');
       }
     } catch (err) {
       console.error('Error saving work:', err);
-      alert('Сервертэй холбогдоход алдаа гарлаа');
+      setSubmitError('Сервертэй холбогдоход алдаа гарлаа. Дахин оролдоно уу.');
     } finally {
       setSaving(false);
     }
   };
 
   const resetFilters = () => {
-    setSearchQuery('');
-    setStatusFilter('all');
-    setPriorityFilter('all');
-    setCustomerTypeFilter('all');
-    setEmployeeFilter('all');
+    // Эрэмбэ болон нэмэлт хэсгийн нээлттэй байдлыг хэвээр үлдээнэ
+    setFilters((prev) => ({ ...DEFAULT_FILTERS, sort: prev.sort }));
+    setCurrentPage(1);
   };
 
-  const hasActiveFilters = 
-    searchQuery !== '' || 
-    statusFilter !== 'all' || 
-    priorityFilter !== 'all' || 
-    customerTypeFilter !== 'all' || 
-    employeeFilter !== 'all';
+  // ---- Сонголтууд ----
+  const employeeFilterOptions = useMemo(
+    () => [
+      { value: 'none', label: 'Хуваарилаагүй', sub: 'Ажилтан томилоогүй ажлууд' },
+      ...options.employees.map((emp) => ({
+        value: String(emp.user_id),
+        label: `${emp.last_name ?? ''} ${emp.first_name ?? ''}`.trim(),
+        sub: emp.email,
+      })),
+    ],
+    [options.employees]
+  );
 
-  const filteredWorks = works.filter(w => {
-    const matchesSearch = 
-      w.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (w.customer_name && w.customer_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (w.employee_name && w.employee_name.toLowerCase().includes(searchQuery.toLowerCase()));
+  const serviceFilterOptions = useMemo(
+    () =>
+      options.services.map((s) => ({
+        value: String(s.service_id),
+        label: s.name,
+        sub: `${Number(s.price).toLocaleString()} ₮`,
+      })),
+    [options.services]
+  );
 
-    const matchesStatus = statusFilter === 'all' || w.status === statusFilter;
-    const matchesPriority = priorityFilter === 'all' || w.priority === priorityFilter;
-    const matchesCustomerType = customerTypeFilter === 'all' || w.customer_type === customerTypeFilter;
-    const matchesEmployee = employeeFilter === 'all' || w.assigned_employee === employeeFilter;
+  const customerFilterOptions = useMemo(
+    () => [
+      ...options.individuals.map((c) => ({
+        value: `i:${c.id}`,
+        label: `${c.last_name ?? ''} ${c.first_name ?? ''}`.trim(),
+        sub: `Хувь хүн${c.phone ? ` · ${c.phone}` : ''}`,
+      })),
+      ...options.companies.map((c) => ({
+        value: `c:${c.id}`,
+        label: c.name,
+        sub: `Байгууллага · ${c.tax_number}${c.phone ? ` · ${c.phone}` : ''}`,
+      })),
+    ],
+    [options.individuals, options.companies]
+  );
 
-    return matchesSearch && matchesStatus && matchesPriority && matchesCustomerType && matchesEmployee;
-  });
+  // ---- Шүүх, эрэмбэлэх ----
+  const ranges = currentRanges();
+  const overdueCount = works.filter((w) => {
+    const due = workDate(w.due_date);
+    return !!due && due < ranges.today && isOpenWork(w);
+  }).length;
+
+  const filteredWorks = useMemo(() => {
+    const { today, weekStart, weekEnd, monthStart, monthEnd } = currentRanges();
+    const words = filters.q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const priceMin = filters.priceMin === '' ? null : Number(filters.priceMin);
+    const priceMax = filters.priceMax === '' ? null : Number(filters.priceMax);
+
+    const result = works.filter((w) => {
+      if (words.length > 0) {
+        // Гарчиг, тайлбар, харилцагч, ажилтан, үйлчилгээний нэрээр — бүх үг тааралдах ёстой
+        const haystack = [w.title, w.description, w.customer_name, w.employee_name, ...(w.services ?? []).map((s) => s.service_name)]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        if (!words.every((word) => haystack.includes(word))) return false;
+      }
+      if (filters.status !== 'all' && w.status !== filters.status) return false;
+      if (filters.priority !== 'all' && w.priority !== filters.priority) return false;
+      if (filters.customerType !== 'all' && w.customer_type !== filters.customerType) return false;
+      if (filters.employee === 'none' ? !!w.assigned_employee : filters.employee !== 'all' && w.assigned_employee !== filters.employee) {
+        return false;
+      }
+      if (filters.service && !(w.services ?? []).some((s) => String(s.service_id) === filters.service)) return false;
+      if (filters.customer) {
+        const key = w.customer_type === 'company' ? `c:${w.company_customer_id}` : `i:${w.customer_id}`;
+        if (key !== filters.customer) return false;
+      }
+
+      const due = workDate(w.due_date);
+      switch (filters.due) {
+        case 'overdue':
+          if (!due || due >= today || !isOpenWork(w)) return false;
+          break;
+        case 'today':
+          if (due !== today) return false;
+          break;
+        case 'week':
+          if (!due || due < weekStart || due > weekEnd) return false;
+          break;
+        case 'month':
+          if (!due || due < monthStart || due > monthEnd) return false;
+          break;
+        case 'none':
+          if (due) return false;
+          break;
+        case 'custom':
+          if ((filters.dueFrom || filters.dueTo) && !due) return false;
+          if (filters.dueFrom && due < filters.dueFrom) return false;
+          if (filters.dueTo && due > filters.dueTo) return false;
+          break;
+      }
+
+      const created = workDate(w.create_date);
+      if (filters.createdFrom && created < filters.createdFrom) return false;
+      if (filters.createdTo && created > filters.createdTo) return false;
+
+      const price = Number(w.price) || 0;
+      if (priceMin !== null && price < priceMin) return false;
+      if (priceMax !== null && price > priceMax) return false;
+      return true;
+    });
+
+    const byCreated = (a: WorkItem, b: WorkItem) => (a.create_date < b.create_date ? -1 : a.create_date > b.create_date ? 1 : 0);
+    switch (filters.sort) {
+      case 'oldest':
+        return result.sort(byCreated);
+      case 'due':
+        // Хугацаагүй ажлууд хамгийн сүүлд
+        return result.sort((a, b) => (workDate(a.due_date) || '9999').localeCompare(workDate(b.due_date) || '9999'));
+      case 'price_desc':
+        return result.sort((a, b) => Number(b.price) - Number(a.price));
+      case 'price_asc':
+        return result.sort((a, b) => Number(a.price) - Number(b.price));
+      default:
+        return result.sort((a, b) => byCreated(b, a));
+    }
+  }, [works, filters]);
+
+  // ---- Идэвхтэй шүүлтүүрийн шошгууд ----
+  const optionLabel = (list: { value: string; label: string }[], value: string) =>
+    list.find((o) => o.value === value)?.label ?? value;
+
+  const activeChips: { key: string; label: string; clear: () => void }[] = [];
+  if (filters.q) activeChips.push({ key: 'q', label: `“${filters.q}”`, clear: () => setFilter('q', '') });
+  if (filters.status !== 'all') activeChips.push({ key: 'status', label: STATUS_LABELS[filters.status] ?? filters.status, clear: () => setFilter('status', 'all') });
+  if (filters.priority !== 'all') activeChips.push({ key: 'priority', label: PRIORITY_LABELS[filters.priority] ?? filters.priority, clear: () => setFilter('priority', 'all') });
+  if (filters.customerType !== 'all') {
+    activeChips.push({ key: 'customerType', label: filters.customerType === 'company' ? 'Компани' : 'Хувь хүн', clear: () => setFilter('customerType', 'all') });
+  }
+  if (filters.employee !== 'all') {
+    activeChips.push({ key: 'employee', label: `Ажилтан: ${optionLabel(employeeFilterOptions, filters.employee)}`, clear: () => setFilter('employee', 'all') });
+  }
+  if (filters.service) {
+    activeChips.push({ key: 'service', label: `Үйлчилгээ: ${optionLabel(serviceFilterOptions, filters.service)}`, clear: () => setFilter('service', '') });
+  }
+  if (filters.customer) {
+    activeChips.push({ key: 'customer', label: `Харилцагч: ${optionLabel(customerFilterOptions, filters.customer)}`, clear: () => setFilter('customer', '') });
+  }
+  if (filters.due !== 'all') {
+    const range = filters.due === 'custom' ? `: ${filters.dueFrom ? formatDate(filters.dueFrom) : '…'} – ${filters.dueTo ? formatDate(filters.dueTo) : '…'}` : '';
+    activeChips.push({
+      key: 'due',
+      label: `${DUE_LABELS[filters.due] ?? filters.due}${range}`,
+      clear: () => {
+        setFilters((prev) => ({ ...prev, due: 'all', dueFrom: '', dueTo: '' }));
+        setCurrentPage(1);
+      },
+    });
+  }
+  if (filters.createdFrom || filters.createdTo) {
+    activeChips.push({
+      key: 'created',
+      label: `Бүртгэсэн: ${filters.createdFrom ? formatDate(filters.createdFrom) : '…'} – ${filters.createdTo ? formatDate(filters.createdTo) : '…'}`,
+      clear: () => {
+        setFilters((prev) => ({ ...prev, createdFrom: '', createdTo: '' }));
+        setCurrentPage(1);
+      },
+    });
+  }
+  if (filters.priceMin || filters.priceMax) {
+    const fmt = (v: string) => `${Number(v).toLocaleString()}₮`;
+    activeChips.push({
+      key: 'price',
+      label: `Үнэ: ${filters.priceMin ? fmt(filters.priceMin) : '0₮'} – ${filters.priceMax ? fmt(filters.priceMax) : '…'}`,
+      clear: () => {
+        setFilters((prev) => ({ ...prev, priceMin: '', priceMax: '' }));
+        setCurrentPage(1);
+      },
+    });
+  }
+
+  const hasActiveFilters = activeChips.length > 0;
+  const advancedCount = activeChips.filter((c) => ['service', 'customer', 'due', 'created', 'price'].includes(c.key)).length;
 
   const totalPages = Math.ceil(filteredWorks.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -238,7 +471,7 @@ function WorkshopContent() {
           <p className="text-[11px] sm:text-xs text-slate-400 dark:text-slate-400 mt-0.5">Харилцагч, үйлчилгээ болон ажилтны гүйцэтгэлийг хянах</p>
         </div>
         <button
-          onClick={() => setIsModalOpen(true)}
+          onClick={openModal}
           className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl sm:rounded-2xl text-xs font-bold transition-all shadow-md shadow-blue-500/20 active:scale-95 cursor-pointer"
         >
           <Plus size={16} /> Шинэ ажил бүртгэх
@@ -248,27 +481,37 @@ function WorkshopContent() {
       {/* Filter & Search Section */}
       <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-100 dark:border-slate-800 shadow-2xs space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5 bg-slate-50 dark:bg-slate-800/60 px-3.5 py-2.5 rounded-xl border border-slate-200/70 dark:border-slate-700 w-full lg:w-88 focus-within:border-blue-500 focus-within:bg-white dark:focus-within:bg-slate-900 transition-all">
+          <div className="flex items-center gap-2.5 bg-slate-50 dark:bg-slate-800/60 px-3.5 py-2.5 rounded-xl border border-slate-200/70 dark:border-slate-700 w-full lg:w-112 focus-within:border-blue-500 focus-within:bg-white dark:focus-within:bg-slate-900 transition-all">
             <Search size={16} className="text-slate-400 shrink-0" />
-            <input 
+            <input
               type="text"
-              placeholder="Ажил, харилцагч эсвэл ажилтнаар хайх..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Ажил, тайлбар, харилцагч, үйлчилгээ, ажилтнаар хайх..."
+              value={filters.q}
+              onChange={(e) => setFilter('q', e.target.value)}
               className="w-full text-xs font-bold text-slate-800 dark:text-slate-100 bg-transparent outline-none"
             />
-            {searchQuery && (
-              <button onClick={() => setSearchQuery('')} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+            {filters.q && (
+              <button onClick={() => setFilter('q', '')} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer" aria-label="Хайлт цэвэрлэх">
                 <X size={14} />
               </button>
             )}
           </div>
 
-          <div className="flex items-center justify-between lg:justify-end gap-2">
+          <div className="flex items-center justify-between lg:justify-end gap-2 flex-wrap">
             <span className="text-xs font-bold text-slate-400">
               Үр дүн: <span className="text-slate-800 dark:text-slate-200">{filteredWorks.length}</span>
             </span>
             <div className="h-4 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block" />
+            <select
+              value={filters.sort}
+              onChange={(e) => setFilter('sort', e.target.value)}
+              className={`${filterSelectClass} w-auto!`}
+              aria-label="Эрэмбэлэх"
+            >
+              {Object.entries(SORT_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
             <div className="flex items-center gap-1 bg-slate-100/70 dark:bg-slate-800 p-1 rounded-xl">
               <button
                 onClick={() => setViewMode('list')}
@@ -294,41 +537,28 @@ function WorkshopContent() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Төлөв</label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-50/70 dark:bg-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-800 px-3 py-2 rounded-xl border border-slate-200/70 dark:border-slate-700 outline-none cursor-pointer focus:border-blue-500 transition-all"
-            >
+            <label className={filterLabelClass}>Төлөв</label>
+            <select value={filters.status} onChange={(e) => setFilter('status', e.target.value)} className={filterSelectClass}>
               <option value="all">Бүх төлөв</option>
-              <option value="pending">Хүлээгдэж буй</option>
-              <option value="in_progress">Хийгдэж байна</option>
-              <option value="completed">Дууссан</option>
-              <option value="cancelled">Цуцлагдсан</option>
+              {Object.entries(STATUS_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
             </select>
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Зэрэглэл</label>
-            <select
-              value={priorityFilter}
-              onChange={(e) => setPriorityFilter(e.target.value)}
-              className="w-full text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-50/70 dark:bg-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-800 px-3 py-2 rounded-xl border border-slate-200/70 dark:border-slate-700 outline-none cursor-pointer focus:border-blue-500 transition-all"
-            >
+            <label className={filterLabelClass}>Зэрэглэл</label>
+            <select value={filters.priority} onChange={(e) => setFilter('priority', e.target.value)} className={filterSelectClass}>
               <option value="all">Бүх зэрэглэл</option>
-              <option value="low">Энгийн</option>
-              <option value="medium">Дунд</option>
-              <option value="high">Яаралтай</option>
+              {Object.entries(PRIORITY_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
             </select>
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Харилцагчийн төрөл</label>
-            <select
-              value={customerTypeFilter}
-              onChange={(e) => setCustomerTypeFilter(e.target.value)}
-              className="w-full text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-50/70 dark:bg-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-800 px-3 py-2 rounded-xl border border-slate-200/70 dark:border-slate-700 outline-none cursor-pointer focus:border-blue-500 transition-all"
-            >
+            <label className={filterLabelClass}>Харилцагчийн төрөл</label>
+            <select value={filters.customerType} onChange={(e) => setFilter('customerType', e.target.value)} className={filterSelectClass}>
               <option value="all">Бүх харилцагч</option>
               <option value="individual">Хувь хүн</option>
               <option value="company">Компани</option>
@@ -336,30 +566,194 @@ function WorkshopContent() {
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Хариуцсан ажилтан</label>
-            <select
-              value={employeeFilter}
-              onChange={(e) => setEmployeeFilter(e.target.value)}
-              className="w-full text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-50/70 dark:bg-slate-800/60 hover:bg-slate-50 dark:hover:bg-slate-800 px-3 py-2 rounded-xl border border-slate-200/70 dark:border-slate-700 outline-none cursor-pointer focus:border-blue-500 transition-all"
-            >
-              <option value="all">Бүх ажилтан</option>
-              {options.employees.map(emp => (
-                <option key={emp.user_id} value={emp.user_id}>
-                  {emp.last_name} {emp.first_name}
-                </option>
-              ))}
-            </select>
+            <label className={filterLabelClass}>Хариуцсан ажилтан</label>
+            {/* Ажилтан олон байж болох тул нэр, имэйлээр хайж сонгоно. Хоосон = бүх ажилтан */}
+            <SearchSelect
+              size="sm"
+              options={employeeFilterOptions}
+              value={filters.employee === 'all' ? '' : filters.employee}
+              onChange={(id) => setFilter('employee', id || 'all')}
+              placeholder="Ажилтан хайх..."
+              fallbackLabel="Бүх ажилтан"
+              emptyText="Ажилтан олдсонгүй"
+              className={searchSelectFilterClass}
+              aria-label="Хариуцсан ажилтнаар шүүх"
+            />
           </div>
         </div>
 
-        {hasActiveFilters && (
-          <div className="flex items-center justify-between pt-2">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[11px] text-slate-400 font-medium">Идэвхтэй шүүлтүүрүүд</span>
+        {/* Нэмэлт шүүлтүүр */}
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setShowAdvanced((v) => !v)}
+            aria-expanded={showAdvanced}
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer"
+          >
+            <SlidersHorizontal size={14} />
+            Нэмэлт шүүлтүүр
+            {advancedCount > 0 && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-blue-600 text-white">{advancedCount}</span>
+            )}
+            <ChevronDown size={14} className={`transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
+          </button>
+          {overdueCount > 0 && filters.due !== 'overdue' && (
+            <button
+              type="button"
+              onClick={() => {
+                setFilters((prev) => ({ ...prev, due: 'overdue', dueFrom: '', dueTo: '' }));
+                setCurrentPage(1);
+              }}
+              className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-950 transition-colors cursor-pointer"
+            >
+              <Clock size={12} /> Хугацаа хэтэрсэн {overdueCount} ажил
+            </button>
+          )}
+        </div>
+
+        {showAdvanced && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 p-3 rounded-2xl bg-slate-50/60 dark:bg-slate-800/30 border border-slate-100 dark:border-slate-800">
+            <div className="flex flex-col gap-1">
+              <label className={filterLabelClass}>Үйлчилгээ</label>
+              <SearchSelect
+                size="sm"
+                options={serviceFilterOptions}
+                value={filters.service}
+                onChange={(id) => setFilter('service', id)}
+                placeholder="Үйлчилгээ хайх..."
+                fallbackLabel="Бүх үйлчилгээ"
+                emptyText="Үйлчилгээ олдсонгүй"
+                className={searchSelectFilterClass}
+                aria-label="Үйлчилгээгээр шүүх"
+              />
             </div>
+
+            <div className="flex flex-col gap-1">
+              <label className={filterLabelClass}>Харилцагч</label>
+              <SearchSelect
+                size="sm"
+                options={customerFilterOptions}
+                value={filters.customer}
+                onChange={(id) => setFilter('customer', id)}
+                placeholder="Нэр, утас, регистрээр хайх..."
+                fallbackLabel="Бүх харилцагч"
+                emptyText="Харилцагч олдсонгүй"
+                className={searchSelectFilterClass}
+                aria-label="Харилцагчаар шүүх"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className={filterLabelClass}>Үнэ (₮)</label>
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  inputMode="decimal"
+                  placeholder="Доод"
+                  value={filters.priceMin}
+                  onChange={(e) => setFilter('priceMin', e.target.value)}
+                  className={filterInputClass}
+                  aria-label="Доод үнэ"
+                />
+                <span className="text-slate-400 text-xs">–</span>
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  inputMode="decimal"
+                  placeholder="Дээд"
+                  value={filters.priceMax}
+                  onChange={(e) => setFilter('priceMax', e.target.value)}
+                  className={filterInputClass}
+                  aria-label="Дээд үнэ"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className={filterLabelClass}>Дуусах хугацаа</label>
+              <select
+                value={filters.due}
+                onChange={(e) => {
+                  const due = e.target.value;
+                  setFilters((prev) => ({ ...prev, due, ...(due === 'custom' ? {} : { dueFrom: '', dueTo: '' }) }));
+                  setCurrentPage(1);
+                }}
+                className={filterSelectClass}
+              >
+                <option value="all">Бүгд</option>
+                <option value="overdue">Хугацаа хэтэрсэн ({overdueCount})</option>
+                <option value="today">Өнөөдөр дуусах</option>
+                <option value="week">Энэ 7 хоногт дуусах</option>
+                <option value="month">Энэ сард дуусах</option>
+                <option value="none">Хугацаагүй</option>
+                <option value="custom">Интервал сонгох…</option>
+              </select>
+              {filters.due === 'custom' && (
+                <div className="flex items-center gap-1.5 mt-1">
+                  <input
+                    type="date"
+                    value={filters.dueFrom}
+                    onChange={(e) => setFilter('dueFrom', e.target.value)}
+                    className={filterInputClass}
+                    aria-label="Дуусах хугацаа — эхлэх"
+                  />
+                  <ArrowRight size={12} className="text-slate-400 shrink-0" />
+                  <input
+                    type="date"
+                    value={filters.dueTo}
+                    min={filters.dueFrom || undefined}
+                    onChange={(e) => setFilter('dueTo', e.target.value)}
+                    className={filterInputClass}
+                    aria-label="Дуусах хугацаа — хүртэл"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-1 sm:col-span-2 lg:col-span-2">
+              <label className={filterLabelClass}>Бүртгэсэн огноо</label>
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="date"
+                  value={filters.createdFrom}
+                  max={ranges.today}
+                  onChange={(e) => setFilter('createdFrom', e.target.value)}
+                  className={filterInputClass}
+                  aria-label="Бүртгэсэн огноо — эхлэх"
+                />
+                <ArrowRight size={12} className="text-slate-400 shrink-0" />
+                <input
+                  type="date"
+                  value={filters.createdTo}
+                  min={filters.createdFrom || undefined}
+                  onChange={(e) => setFilter('createdTo', e.target.value)}
+                  className={filterInputClass}
+                  aria-label="Бүртгэсэн огноо — хүртэл"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {hasActiveFilters && (
+          <div className="flex items-center gap-2 flex-wrap pt-1">
+            {activeChips.map((chip) => (
+              <span
+                key={chip.key}
+                className="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 text-[11px] font-bold max-w-full"
+              >
+                <span className="truncate">{chip.label}</span>
+                <button onClick={chip.clear} className="p-0.5 rounded hover:bg-blue-100 dark:hover:bg-blue-900 cursor-pointer shrink-0" aria-label="Шүүлтүүр арилгах">
+                  <X size={12} />
+                </button>
+              </span>
+            ))}
             <button
               onClick={resetFilters}
-              className="inline-flex items-center gap-1 text-xs font-bold text-rose-500 hover:text-rose-600 dark:hover:text-rose-400 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1 text-xs font-bold text-rose-500 hover:text-rose-600 dark:hover:text-rose-400 transition-colors cursor-pointer ml-auto"
             >
               <RotateCcw size={12} /> Шүүлтүүрийг цэвэрлэх
             </button>
@@ -431,7 +825,7 @@ function WorkshopContent() {
                     </td>
                     <td className="py-4 px-6">
                       <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 truncate max-w-35">
-                        <Briefcase size={11} className="shrink-0" /> {work.service_name || 'Үйлчилгээ сонгоогүй'}
+                        <Briefcase size={11} className="shrink-0" /> {serviceLabel(work)}
                       </span>
                     </td>
                     <td className="py-4 px-6 font-medium text-slate-700 dark:text-slate-300 truncate max-w-30">
@@ -469,7 +863,7 @@ function WorkshopContent() {
                     <h3 className="font-black text-sm text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{work.title}</h3>
                     <div className="flex items-center gap-1.5 mt-1">
                       <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                        <Briefcase size={10} /> {work.service_name || 'Үйлчилгээ сонгоогүй'}
+                        <Briefcase size={10} /> {serviceLabel(work)}
                       </span>
                       {getPriorityBadge(work.priority)}
                     </div>
@@ -536,7 +930,7 @@ function WorkshopContent() {
       {/* Add Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4">
-          <div className="bg-white dark:bg-slate-900 max-w-lg w-full rounded-3xl p-6 sm:p-8 space-y-5 shadow-2xl border border-slate-100 dark:border-slate-800 animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 max-w-2xl w-full rounded-3xl p-6 sm:p-8 space-y-5 shadow-2xl border border-slate-100 dark:border-slate-800 animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
               <h3 className="font-black text-base text-slate-900 dark:text-white">Шинэ ажил бүртгэх</h3>
               <button onClick={() => setIsModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl cursor-pointer">
@@ -544,125 +938,10 @@ function WorkshopContent() {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Ажлын нэр / Гарчиг *</label>
-                <input 
-                  type="text"
-                  required
-                  placeholder="Жишээ: Засварын ажил..."
-                  value={formData.title}
-                  onChange={(e) => setFormData({...formData, title: e.target.value})}
-                  className="w-full px-3.5 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500"
-                />
-              </div>
+            <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
+              <WorkFormFields formData={formData} setFormData={setFormData} options={options} errors={errors} />
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Харилцагчийн төрөл *</label>
-                  <select
-                    value={formData.customer_type}
-                    onChange={(e) => setFormData({...formData, customer_type: e.target.value as 'individual' | 'company', customer_id: ''})}
-                    className="w-full px-3.5 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 bg-white dark:bg-slate-800 cursor-pointer"
-                  >
-                    <option value="individual">Хувь хүн</option>
-                    <option value="company">Компани</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Харилцагч сонгох *</label>
-                  <select
-                    required
-                    value={formData.customer_id}
-                    onChange={(e) => setFormData({...formData, customer_id: e.target.value})}
-                    className="w-full px-3.5 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 bg-white dark:bg-slate-800 cursor-pointer"
-                  >
-                    <option value="">-- Сонгох --</option>
-                    {formData.customer_type === 'individual' ? (
-                      options.individuals.map(ind => (
-                        <option key={ind.id} value={ind.id}>
-                          {ind.last_name} {ind.first_name} ({ind.phone || 'Утасгүй'})
-                        </option>
-                      ))
-                    ) : (
-                      options.companies.map(comp => (
-                        <option key={comp.id} value={comp.id}>
-                          {comp.name} (Регистр: {comp.tax_number})
-                        </option>
-                      ))
-                    )}
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Үйлчилгээ сонгох</label>
-                  <select
-                    value={formData.service_id}
-                    onChange={handleServiceChange}
-                    className="w-full px-3.5 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 bg-white dark:bg-slate-800 cursor-pointer"
-                  >
-                    <option value="">-- Үйлчилгээ сонгох --</option>
-                    {options.services.map(ser => (
-                      <option key={ser.service_id} value={ser.service_id}>
-                        {ser.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Үнэ (₮)</label>
-                  <input 
-                    type="number"
-                    value={formData.price}
-                    onChange={(e) => setFormData({...formData, price: e.target.value})}
-                    placeholder="Үнийн дүн..."
-                    className="w-full px-3.5 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Хариуцсан ажилтан</label>
-                  <select
-                    value={formData.assigned_employee}
-                    onChange={(e) => setFormData({...formData, assigned_employee: e.target.value})}
-                    className="w-full px-3.5 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500 bg-white dark:bg-slate-800 cursor-pointer"
-                  >
-                    <option value="">-- Сонгох --</option>
-                    {options.employees.map(emp => (
-                      <option key={emp.user_id} value={emp.user_id}>
-                        {emp.last_name} {emp.first_name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Дуусах хугацаа</label>
-                  <input 
-                    type="date"
-                    value={formData.due_date}
-                    onChange={(e) => setFormData({...formData, due_date: e.target.value})}
-                    className="w-full px-3.5 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Тайлбар</label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  placeholder="Ажлын дэлгэрэнгүй мэдээлэл..."
-                  className="w-full px-3.5 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-800 dark:text-slate-100 outline-none focus:border-blue-500"
-                  rows={3}
-                ></textarea>
-              </div>
+              <FormErrorBanner message={submitError} onClose={() => setSubmitError('')} />
 
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer">

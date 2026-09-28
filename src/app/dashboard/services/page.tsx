@@ -272,6 +272,8 @@ export default function ServicesPage() {
                   <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Үнэ (₮)</label>
                   <input 
                     type="number"
+                    min={0}
+                    step="0.01"
                     placeholder="0"
                     value={formData.price}
                     onChange={(e) => setFormData({...formData, price: e.target.value})}
@@ -282,6 +284,8 @@ export default function ServicesPage() {
                   <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">Хугацаа (минутаар)</label>
                   <input 
                     type="number"
+                    min={1}
+                    step={1}
                     placeholder="30"
                     value={formData.duration}
                     onChange={(e) => setFormData({...formData, duration: e.target.value})}

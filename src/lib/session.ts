@@ -103,7 +103,7 @@ export async function requireAuth(options: { admin?: boolean } = {}): Promise<Au
   const session = await getSession();
   if (!session) {
     return {
-      error: NextResponse.json({ success: false, error: 'Нэвтрээгүй байна. (Auth required)' }, { status: 401 }),
+      error: NextResponse.json({ success: false, error: 'Нэвтрээгүй байна. Дахин нэвтэрнэ үү.' }, { status: 401 }),
     };
   }
   if (options.admin && session.role !== 'admin') {

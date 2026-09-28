@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/src/lib/session';
 import { pool } from '@/src/lib/db';
-import { validateWorkInput } from '@/src/lib/works';
+import {
+  normalizeWorkServices,
+  replaceWorkServices,
+  sumWorkServices,
+  validateWorkInput,
+  WORK_SERVICES_SELECT,
+} from '@/src/lib/works';
 
 // GET: Тухайн компанийн ажлуудын жагсаалт болон холбогдох сонголтын датаг татах
 export async function GET(request: Request) {
@@ -11,7 +17,7 @@ export async function GET(request: Request) {
 
     if (!companyId) {
       return NextResponse.json(
-        { success: false, error: 'Нэвтрээгүй байна. (Auth required)' },
+        { success: false, error: 'Нэвтрээгүй байна. Дахин нэвтэрнэ үү.' },
         { status: 401 }
       );
     }
@@ -59,12 +65,11 @@ export async function GET(request: Request) {
           WHEN w.customer_type = 'company' THEN cc.name
           ELSE 'Тодорхойгүй'
         END AS customer_name,
-        s.name AS service_name,
+        ${WORK_SERVICES_SELECT},
         CONCAT(COALESCE(u.last_name, ''), ' ', COALESCE(u.first_name, '')) AS employee_name
       FROM mt_works w
       LEFT JOIN mt_customer c ON w.customer_id = c.customer_id
       LEFT JOIN mt_customercompany cc ON w.company_customer_id = cc.company_customer_id
-      LEFT JOIN mt_services s ON w.service_id = s.service_id
       LEFT JOIN mt_user u ON w.assigned_employee::text = u.user_id::text
       WHERE w.company_id = $1
       ORDER BY w.create_date DESC
@@ -90,7 +95,7 @@ export async function POST(request: Request) {
 
     if (!companyId) {
       return NextResponse.json(
-        { success: false, error: 'Нэвтрээгүй байна. (Auth required)' },
+        { success: false, error: 'Нэвтрээгүй байна. Дахин нэвтэрнэ үү.' },
         { status: 401 }
       );
     }
@@ -102,7 +107,6 @@ export async function POST(request: Request) {
       title, 
       customer_type, 
       customer_id, 
-      service_id, 
       assigned_employee, 
       price, 
       status, 
@@ -121,6 +125,20 @@ export async function POST(request: Request) {
     const inputError = await validateWorkInput(companyId, body);
     if (inputError) {
       return NextResponse.json({ success: false, error: inputError }, { status: 400 });
+    }
+
+    const serviceResult = await normalizeWorkServices(companyId, body);
+    if (serviceResult.error !== undefined) {
+      return NextResponse.json({ success: false, error: serviceResult.error }, { status: 400 });
+    }
+    const lines = serviceResult.lines;
+    if (lines.length === 0) {
+      return NextResponse.json({ success: false, error: 'Дор хаяж нэг үйлчилгээ сонгоно уу.' }, { status: 400 });
+    }
+    // Үйлчилгээ сонгосон бол нийт үнэ = мөрүүдийн нийлбэр, үгүй бол гараар оруулсан үнэ
+    const totalPrice = lines.length > 0 ? sumWorkServices(lines) : Math.round((Number(price) || 0) * 100) / 100;
+    if (totalPrice < 0) {
+      return NextResponse.json({ success: false, error: 'Үнэ буруу байна.' }, { status: 400 });
     }
 
     let indCustomerId = null;
@@ -146,21 +164,35 @@ export async function POST(request: Request) {
       customer_type,
       indCustomerId,
       compCustomerId,
-      service_id ? Number(service_id) : null,
+      lines[0]?.service_id ?? null, // хуучин query-нүүдэд зориулсан үндсэн үйлчилгээ
       assigned_employee || null, // mt_user.user_id (UUID)
       title,
       description || null,
-      price ? Number(price) : 0,
+      totalPrice,
       status || 'pending',
       priority || 'medium', // Зэрэглэл утга
       due_date || null
     ];
 
-    const { rows } = await pool.query(insertQuery, values);
+    // Ажил болон үйлчилгээнүүдийг хамт хадгална (аль нэг нь алдаа гарвал аль аль нь буцна)
+    const client = await pool.connect();
+    let work;
+    try {
+      await client.query('BEGIN');
+      const { rows } = await client.query(insertQuery, values);
+      work = rows[0];
+      await replaceWorkServices(client, work.work_id, lines);
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
 
     return NextResponse.json({ 
       success: true, 
-      data: rows[0],
+      data: work,
       message: 'Ажил амжилттай бүртгэгдлээ' 
     });
   } catch (error) {
