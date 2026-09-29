@@ -50,7 +50,8 @@ export default function LoginPage() {
         throw new Error(data.error || 'Нэвтрэх үед алдаа гарлаа.');
       }
 
-      router.push('/dashboard');
+      // Ажилтанд зөвхөн "Ажил" цэс харагддаг тул шууд тийш нь оруулна
+      router.push(data.user?.role === 'admin' ? '/dashboard' : '/dashboard/workshop');
 
     } catch (err: unknown) {
       if (err instanceof Error) {

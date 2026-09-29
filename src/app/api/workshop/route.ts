@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getSession } from '@/src/lib/session';
 import { pool } from '@/src/lib/db';
 import {
+  canEditWork,
   normalizeWorkServices,
   replaceWorkServices,
   sumWorkServices,
@@ -77,7 +78,10 @@ export async function GET(request: Request) {
 
     const { rows } = await pool.query(worksQuery, [companyId]);
 
-    return NextResponse.json({ success: true, data: rows });
+    return NextResponse.json({
+      success: true,
+      data: rows.map((w) => ({ ...w, can_edit: canEditWork(session!, w.assigned_employee) })),
+    });
   } catch (error) {
     console.error('Fetch Works Error:', error);
     return NextResponse.json(

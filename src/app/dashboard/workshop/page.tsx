@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Wrench, Plus, Search, Clock, CheckCircle2,
   X, LayoutList, LayoutGrid, User, Briefcase, ShieldAlert, RotateCcw, ChevronLeft, ChevronRight,
-  SlidersHorizontal, ChevronDown, ArrowRight
+  SlidersHorizontal, ChevronDown, ArrowRight, Lock
 } from 'lucide-react';
 import Loading from '@/src/app/components/loading';
 import SearchSelect from '@/src/app/components/SearchSelect';
@@ -29,7 +29,16 @@ interface WorkItem {
   due_date: string;
   create_date: string;
   description: string;
+  // Нэвтэрсэн хэрэглэгч засах эрхтэй эсэх (админ: бүгд, ажилтан: зөвхөн өөрийн хариуцсан)
+  can_edit?: boolean;
 }
+
+// Засах эрхгүй ажлын гарчгийн хажууд харуулах тэмдэг
+const ReadOnlyMark = () => (
+  <span title="Өөр ажилтны ажил — зөвхөн харах" className="inline-flex text-slate-400 dark:text-slate-500 shrink-0">
+    <Lock size={12} aria-label="Зөвхөн харах" />
+  </span>
+);
 
 const serviceLabel = (work: WorkItem) => {
   const names = work.services?.map((s) => s.service_name) ?? [];
@@ -481,7 +490,7 @@ function WorkshopContent() {
       {/* Filter & Search Section */}
       <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-slate-100 dark:border-slate-800 shadow-2xs space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5 bg-slate-50 dark:bg-slate-800/60 px-3.5 py-2.5 rounded-xl border border-slate-200/70 dark:border-slate-700 w-full lg:w-112 focus-within:border-blue-500 focus-within:bg-white dark:focus-within:bg-slate-900 transition-all">
+          <div className="flex items-center gap-2.5 bg-slate-50 dark:bg-slate-800/60 px-3.5 py-2.5 rounded-xl border border-slate-200/70 dark:border-slate-700 w-full lg:w-md focus-within:border-blue-500 focus-within:bg-white dark:focus-within:bg-slate-900 transition-all">
             <Search size={16} className="text-slate-400 shrink-0" />
             <input
               type="text"
@@ -809,7 +818,9 @@ function WorkshopContent() {
                           <Wrench size={16} />
                         </div>
                         <div>
-                          <span className="font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors block">{work.title}</span>
+                          <span className="font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors flex items-center gap-1.5">
+                            {work.title} {work.can_edit === false && <ReadOnlyMark />}
+                          </span>
                           <span className="text-[11px] text-slate-400 truncate max-w-55 block">{work.description || 'Тайлбар байхгүй'}</span>
                         </div>
                       </div>
@@ -860,7 +871,9 @@ function WorkshopContent() {
                     <Wrench size={18} />
                   </div>
                   <div>
-                    <h3 className="font-black text-sm text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{work.title}</h3>
+                    <h3 className="font-black text-sm text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors flex items-center gap-1.5">
+                      {work.title} {work.can_edit === false && <ReadOnlyMark />}
+                    </h3>
                     <div className="flex items-center gap-1.5 mt-1">
                       <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                         <Briefcase size={10} /> {serviceLabel(work)}

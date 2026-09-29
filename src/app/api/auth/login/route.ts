@@ -74,7 +74,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // 6. user_id, company_id, role-ийг гарын үсэгтэй session cookie-д хадгалах
+    // 6. user_id, company_id-г гарын үсэгтэй session cookie-д хадгалах.
+    //    role-ийг cookie-д хуулахгүй: loadSession() хүсэлт бүрт user_id-аар mt_user.role-ийг уншдаг
+    //    тул эрх солигдоход даруй үйлчилнэ.
     await clearRateLimit(failKeys[0].key);
     await createSession({
       userId: String(user.user_id),

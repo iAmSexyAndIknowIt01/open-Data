@@ -1,6 +1,13 @@
 import 'server-only';
 import type { PoolClient } from 'pg';
 import { pool } from './db';
+import type { Session } from './session';
+
+// Админ бүх ажлыг, ажилтан зөвхөн өөрт нь хуваарилагдсан ажлыг засна
+export function canEditWork(session: Pick<Session, 'role' | 'userId'>, assignedEmployee: unknown): boolean {
+  if (session.role === 'admin') return true;
+  return assignedEmployee !== null && assignedEmployee !== undefined && String(assignedEmployee) === session.userId;
+}
 
 const CUSTOMER_TYPES = ['individual', 'company'];
 const STATUSES = ['pending', 'in_progress', 'completed', 'cancelled'];

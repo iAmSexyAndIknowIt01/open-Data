@@ -3,7 +3,7 @@
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Save, CalendarCheck } from 'lucide-react';
+import { ArrowLeft, Save, CalendarCheck, Lock } from 'lucide-react';
 import Loading from '@/src/app/components/loading';
 import CommonModal from '@/src/app/components/CommonModal';
 import { useFormValidation, FormErrorBanner } from '@/src/app/components/FormValidation';
@@ -35,6 +35,9 @@ export default function WorkDetailPage({ params }: { params: Promise<{ id: strin
   const [submitError, setSubmitError] = useState('');
   // Энэ ажил захиалгаас үүссэн бол ("Ажил эхлүүлэх")
   const [reservation, setReservation] = useState<{ date: string; start: string } | null>(null);
+  // Ажилтан зөвхөн өөрийн хариуцсан ажлыг засна, хариуцагчийг зөвхөн админ солино (API дээр мөн шалгана)
+  const [canEdit, setCanEdit] = useState(false);
+  const [canReassign, setCanReassign] = useState(false);
   const { formRef, errors } = useFormValidation();
 
   const fetchWorkAndOptions = async () => {
@@ -55,6 +58,8 @@ export default function WorkDetailPage({ params }: { params: Promise<{ id: strin
       
       if (workResult.success && workResult.data) {
         const item = workResult.data;
+        setCanEdit(item.can_edit === true);
+        setCanReassign(item.can_reassign === true);
         setReservation(item.reservation_id && item.reservation_date ? { date: item.reservation_date, start: item.reservation_start } : null);
         const resolvedType = item.customer_type === 'company' ? 'company' : 'individual';
         const currentCustomerId = resolvedType === 'company' 
@@ -138,8 +143,12 @@ export default function WorkDetailPage({ params }: { params: Promise<{ id: strin
             <ArrowLeft size={18} />
           </button>
           <div>
-            <h1 className="text-base sm:text-xl font-black text-slate-900 dark:text-white">Ажлын дэлгэрэнгүй & Засварлах</h1>
-            <p className="text-[11px] sm:text-xs text-slate-400 dark:text-slate-400">Мэдээллийг өөрчлөөд хадгалах товчийг дарна уу</p>
+            <h1 className="text-base sm:text-xl font-black text-slate-900 dark:text-white">
+              {canEdit ? 'Ажлын дэлгэрэнгүй & Засварлах' : 'Ажлын дэлгэрэнгүй'}
+            </h1>
+            <p className="text-[11px] sm:text-xs text-slate-400 dark:text-slate-400">
+              {canEdit ? 'Мэдээллийг өөрчлөөд хадгалах товчийг дарна уу' : 'Зөвхөн харах горим'}
+            </p>
             {reservation && (
               <Link
                 href={`/dashboard/reservations?from=${reservation.date}&to=${reservation.date}`}
@@ -155,10 +164,21 @@ export default function WorkDetailPage({ params }: { params: Promise<{ id: strin
 
       {/* Form */}
       <form ref={formRef} onSubmit={handleSubmit} className="bg-white dark:bg-slate-900 p-5 sm:p-8 rounded-2xl sm:rounded-3xl border border-slate-100 dark:border-slate-800 shadow-2xs space-y-4 transition-colors">
-        <WorkFormFields formData={formData} setFormData={setFormData} options={options} errors={errors} />
+        {!canEdit && (
+          <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 text-amber-800 dark:text-amber-300 text-xs font-bold">
+            <Lock size={14} className="shrink-0 mt-0.5" aria-hidden />
+            Энэ ажлыг өөр ажилтан хариуцаж байгаа тул засах боломжгүй. Та зөвхөн өөрийн хариуцсан ажлыг засах эрхтэй.
+          </div>
+        )}
+
+        {/* Засах эрхгүй бол бүх талбарыг идэвхгүй болгоно */}
+        <fieldset disabled={!canEdit} className="min-w-0 space-y-4">
+          <WorkFormFields formData={formData} setFormData={setFormData} options={options} errors={errors} lockAssignee={!canReassign} />
+        </fieldset>
 
         <FormErrorBanner message={submitError} onClose={() => setSubmitError('')} />
 
+        {canEdit && (
         <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100 dark:border-slate-800">
           <button
             type="button"
@@ -179,6 +199,7 @@ export default function WorkDetailPage({ params }: { params: Promise<{ id: strin
             )} Өөрчлөлтийг хадгалах
           </button>
         </div>
+        )}
       </form>
 
       {/* CommonModal ашиглан хариуг харуулах */}
