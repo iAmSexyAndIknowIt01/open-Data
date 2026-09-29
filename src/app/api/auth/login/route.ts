@@ -2,7 +2,14 @@ import { NextResponse } from 'next/server';
 import { compare, hashSync } from 'bcrypt';
 import { pool } from '../../../../lib/db'; // Таны өөрийн db холболтын файл
 import { createSession, normalizeRole } from '../../../../lib/session';
-import { checkRateLimits, getClientIp } from '../../../../lib/rate-limit';
+import {
+  checkRateLimits,
+  clearRateLimit,
+  getClientIp,
+  isRateLimited,
+  rateLimit,
+  tooManyAttempts,
+} from '../../../../lib/rate-limit';
 
 // Бүртгэлгүй имэйлээр оролдоход ч bcrypt шалгалт хийж, хариу өгөх хугацаагаар
 // имэйл бүртгэлтэй эсэхийг таах боломжийг хаана
@@ -22,12 +29,24 @@ export async function POST(request: Request) {
     }
     const normalizedEmail = email.trim().toLowerCase();
 
-    // 2. Нууц үг таах оролдлогыг хязгаарлах: IP-ээр 15 минутад 20, имэйлээр 15 минутад 10
-    const limited = await checkRateLimits([
-      { key: `login:ip:${getClientIp(request)}`, limit: 20, windowSeconds: 15 * 60 },
-      { key: `login:email:${normalizedEmail}`, limit: 10, windowSeconds: 15 * 60 },
-    ]);
+    // 2. Нууц үг таах оролдлогыг хязгаарлах
+    //    * IP-ээр: 15 минутад 20 оролдлого (амжилттай, амжилтгүй аль аль нь)
+    //    * имэйл + IP-ээр: 15 минутад 10 амжилтгүй оролдлого
+    //    * имэйлээр (бүх IP нийлээд): цагт 50 амжилтгүй оролдлого — тархсан халдлагыг удаашруулна
+    //    Имэйлийн хязгаар зөвхөн амжилтгүй оролдлогыг тоолж, IP-тэй хослуулсан тул өөр газраас
+    //    бусдын бүртгэлийг түгжих боломж хумигдана.
+    const ip = getClientIp(request);
+    const limited = await checkRateLimits([{ key: `login:ip:${ip}`, limit: 20, windowSeconds: 15 * 60 }]);
     if (limited) return limited;
+
+    const failKeys = [
+      { key: `login:fail:${normalizedEmail}:${ip}`, limit: 10, windowSeconds: 15 * 60 },
+      { key: `login:fail:${normalizedEmail}`, limit: 50, windowSeconds: 60 * 60 },
+    ];
+    for (const { key, limit, windowSeconds } of failKeys) {
+      const { limited: blocked, retryAfter } = await isRateLimited(key, limit, windowSeconds);
+      if (blocked) return tooManyAttempts(retryAfter);
+    }
 
     // 3. mt_user хүснэгтээс хэрэглэгчийг имэйлээр хайх
     const result = await pool.query(
@@ -40,6 +59,7 @@ export async function POST(request: Request) {
     const isPasswordValid = await compare(password, user?.password_hash ?? DUMMY_HASH);
 
     if (!user || !isPasswordValid) {
+      for (const { key, limit, windowSeconds } of failKeys) await rateLimit(key, limit, windowSeconds);
       return NextResponse.json(
         { error: 'Имэйл эсвэл нууц үг буруу байна.' },
         { status: 401 }
@@ -55,10 +75,10 @@ export async function POST(request: Request) {
     }
 
     // 6. user_id, company_id, role-ийг гарын үсэгтэй session cookie-д хадгалах
+    await clearRateLimit(failKeys[0].key);
     await createSession({
       userId: String(user.user_id),
       companyId: String(user.company_id),
-      role: normalizeRole(user.role),
     });
 
     // 7. Амжилттай нэвтэрсэн үед хэрэглэгчийн мэдээллийг буцаах

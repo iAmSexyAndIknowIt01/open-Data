@@ -61,70 +61,65 @@ export async function GET() {
 
 // 2. Анкетын шинэ хувилбар үүсгэх POST метод (Өмнөх хувилбаруудыг is_active = false болгоно)
 export async function POST(request: Request) {
-  const client = await pool.connect(); // Transaction ашиглах нь илүү найдвартай
   try {
     // Нийтийн анкетын асуултыг зөвхөн админ өөрчилнө
     const { session, error: authError } = await requireAuth({ admin: true });
     if (authError) return authError;
-    const userId = session.userId;
-
-    // Хэрэглэгчийн company_id-г олох
-    const userQuery = 'SELECT company_id FROM mt_user WHERE user_id = $1';
-    const userResult = await client.query(userQuery, [userId]);
-
-    if (userResult.rows.length === 0) {
-      return NextResponse.json(
-        { success: false, error: 'Хэрэглэгч олдсонгүй.' },
-        { status: 404 }
-      );
-    }
-
-    const companyId = userResult.rows[0].company_id;
+    const { companyId } = session;
 
     const body = await request.json();
     const { title, description, questions } = body;
 
-    if (!title) {
+    if (!title || typeof title !== 'string') {
       return NextResponse.json(
         { success: false, error: 'Анкетын гарчиг заавал шаардлагатай.' },
         { status: 400 }
       );
     }
+    if (!Array.isArray(questions) || questions.length > 100) {
+      return NextResponse.json(
+        { success: false, error: 'Асуултын жагсаалт буруу байна (хамгийн ихдээ 100 асуулт).' },
+        { status: 400 }
+      );
+    }
 
-    // Transaction эхлүүлэх
-    await client.query('BEGIN');
+    // Бүх шалгалтын дараа л transaction-д холболт авна (холболтыг эрт эзэлбэл pool дуусч апп гацна)
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
 
-    // Өмнө нь идэвхтэй байсан бүх анкетын is_active утгыг false болгож өөрчлөх
-    const deactivateQuery = `
-      UPDATE mt_templates 
-      SET is_active = false, updated_at = CURRENT_TIMESTAMP
-      WHERE company_id = $1 AND is_active = true
-    `;
-    await client.query(deactivateQuery, [companyId]);
+      // Өмнө нь идэвхтэй байсан бүх анкетын is_active утгыг false болгож өөрчлөх
+      await client.query(
+        `UPDATE mt_templates
+         SET is_active = false, updated_at = CURRENT_TIMESTAMP
+         WHERE company_id = $1 AND is_active = true`,
+        [companyId]
+      );
 
-    // Шинэ хувилбарыг is_active = true байдлаар шинээр INSERT хийх
-    const insertQuery = `
-      INSERT INTO mt_templates (company_id, title, description, questions, is_active)
-      VALUES ($1, $2, $3, $4::jsonb, true)
-    `;
-    await client.query(insertQuery, [companyId, title, description, JSON.stringify(questions)]);
+      // Шинэ хувилбарыг is_active = true байдлаар шинээр INSERT хийх
+      await client.query(
+        `INSERT INTO mt_templates (company_id, title, description, questions, is_active)
+         VALUES ($1, $2, $3, $4::jsonb, true)`,
+        [companyId, title.slice(0, 200), typeof description === 'string' ? description.slice(0, 2000) : null, JSON.stringify(questions)]
+      );
 
-    // Transaction амжилттай дуусгах
-    await client.query('COMMIT');
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
 
     return NextResponse.json({
       success: true,
       message: 'Анкетын шинэ загвар амжилттай хадгалагдлаа.',
     });
-
   } catch (error) {
-    await client.query('ROLLBACK'); // Алдаа гарвал буцаах
     console.error('Template Save Error:', error);
     return NextResponse.json(
       { success: false, error: 'Серверт алдаа гарлаа.' },
       { status: 500 }
     );
-  } finally {
-    client.release(); // Connection-ийг буцааж чөлөөлөх
   }
 }
