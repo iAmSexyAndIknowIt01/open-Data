@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -26,6 +25,9 @@ export default function ProfilePage() {
   });
 
   const [tempData, setTempData] = useState(formData);
+  const [serverMessage, setServerMessage] = useState('');
+  // Имэйл солиход одоогийн нууц үг шаардлагатай (бүртгэл булаахаас хамгаална)
+  const emailChanged = isEditing && formData.email.trim().toLowerCase() !== tempData.email.trim().toLowerCase();
 
   // API-аас хэрэглэгчийн мэдээлэл татаж авах (/api/profile руу хандана)
   useEffect(() => {
@@ -82,6 +84,11 @@ export default function ProfilePage() {
     e.preventDefault();
     setErrorMessage('');
 
+    if (emailChanged && !formData.currentPassword) {
+      setErrorMessage('Имэйл хаягаа солихын тулд одоогийн нууц үгээ оруулна уу.');
+      return;
+    }
+
     if (isChangingPassword && formData.newPassword) {
       if (!formData.currentPassword) {
         setErrorMessage('Хуучин нууц үгээ оруулна уу.');
@@ -96,7 +103,8 @@ export default function ProfilePage() {
     try {
       const submitData = isChangingPassword ? formData : {
         ...formData,
-        currentPassword: '',
+        // Имэйл солиход одоогийн нууц үгийг дамжуулна
+        currentPassword: emailChanged ? formData.currentPassword : '',
         newPassword: '',
         confirmPassword: ''
       };
@@ -109,10 +117,14 @@ export default function ProfilePage() {
       const result = await res.json();
 
       if (result.success) {
+        const saved = { ...formData, currentPassword: '', newPassword: '', confirmPassword: '' };
+        setFormData(saved);
+        setTempData(saved);
+        setServerMessage(result.message || '');
         setIsEditing(false);
         setIsChangingPassword(false);
         setSuccessMessage(true);
-        setTimeout(() => setSuccessMessage(false), 3000);
+        setTimeout(() => setSuccessMessage(false), 5000);
       } else {
         setErrorMessage(result.error || 'Хадгалахад алдаа гарлаа.');
       }
@@ -153,7 +165,7 @@ export default function ProfilePage() {
 
       {successMessage && (
         <div className="bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 px-4 py-3 rounded-2xl flex items-center gap-2 text-xs sm:text-sm font-bold shadow-2xs">
-          <CheckCircle2 size={18} className="shrink-0 text-emerald-600 dark:text-emerald-400" /> Мэдээлэл амжилттай шинэчлэгдлээ!
+          <CheckCircle2 size={18} className="shrink-0 text-emerald-600 dark:text-emerald-400" /> {serverMessage || 'Мэдээлэл амжилттай шинэчлэгдлээ!'}
         </div>
       )}
 
@@ -212,6 +224,22 @@ export default function ProfilePage() {
                   }`}
                 />
               </div>
+              {emailChanged && !isChangingPassword && (
+                <div className="mt-3">
+                  <label className="block text-xs font-bold text-amber-700 dark:text-amber-400 mb-1.5">
+                    Имэйл солихын тулд одоогийн нууц үгээ оруулна уу
+                  </label>
+                  <input
+                    type="password"
+                    name="currentPassword"
+                    value={formData.currentPassword}
+                    onChange={handleChange}
+                    autoComplete="current-password"
+                    placeholder="••••••••"
+                    className="w-full px-4 py-3 bg-amber-50/50 dark:bg-slate-800 border border-amber-200 dark:border-amber-900 rounded-2xl text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-blue-600 focus:bg-white dark:focus:bg-slate-900"
+                  />
+                </div>
+              )}
             </div>
             
             <div>

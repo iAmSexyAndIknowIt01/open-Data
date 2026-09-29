@@ -53,7 +53,7 @@ export default function RegisterPage() {
       
       setTimeout(() => {
         router.push('/login');
-      }, 2000);
+      }, 3500);
 
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : 'Сүлжээний алдаа гарлаа.';
@@ -120,7 +120,7 @@ export default function RegisterPage() {
         )}
         {success && (
           <div className="bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-300 p-3 rounded-xl text-xs sm:text-sm mb-4 font-bold flex items-center justify-center gap-2 animate-in fade-in">
-            <CheckCircle2 size={18} className="shrink-0" /> Бүртгэл амжилттай! Нэвтрэх хуудас руу шилжиж байна...
+            <CheckCircle2 size={18} className="shrink-0" /> Бүртгэлийн хүсэлтийг хүлээн авлаа. Имэйлээ шалгана уу. Нэвтрэх хуудас руу шилжиж байна...
           </div>
         )}
 

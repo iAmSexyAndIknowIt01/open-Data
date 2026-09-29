@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import { Save, Plus, Trash2, CheckCircle2, Copy, Eye, Settings2, Sparkles, ExternalLink } from 'lucide-react';
 import Image from 'next/image';
+import QRCode from 'qrcode';
 import LoadingComponent from '@/src/app/components/loading';
 
 interface Question {
@@ -122,7 +123,18 @@ export default function MyAnketPage() {
   ? `${baseUrl}/open-data/form/${companyId}`
   : `${baseUrl}/open-data/form/`;
   
-  const qrCodeImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(clientFormUrl)}`;
+  // QR кодыг браузер дотор үүсгэнэ (анкетын холбоосыг гуравдагч сервис рүү илгээхгүй)
+  const [qrCodeImageUrl, setQrCodeImageUrl] = useState('');
+  useEffect(() => {
+    if (!companyId || !baseUrl) return;
+    let cancelled = false;
+    QRCode.toDataURL(clientFormUrl, { width: 352, margin: 1 })
+      .then((url) => !cancelled && setQrCodeImageUrl(url))
+      .catch((err) => console.error('QR code generation failed:', err));
+    return () => {
+      cancelled = true;
+    };
+  }, [clientFormUrl, companyId, baseUrl]);
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(clientFormUrl);
@@ -350,14 +362,14 @@ export default function MyAnketPage() {
 
               <div className="bg-slate-50/80 dark:bg-slate-800/50 p-6 rounded-3xl border border-slate-200/60 dark:border-slate-700 flex flex-col items-center justify-center space-y-4">
                 <div className="w-44 h-44 bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-700 flex items-center justify-center shadow-2xs relative">
-                  <Image
+                  {qrCodeImageUrl && <Image
                     src={qrCodeImageUrl}
                     alt="Client Form QR Code"
                     width={176}
                     height={176}
                     className="w-full h-full object-contain rounded-lg"
                     unoptimized
-                  />
+                  />}
                 </div>
               </div>
 

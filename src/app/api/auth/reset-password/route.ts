@@ -4,6 +4,7 @@ import { pool } from '../../../../lib/db';
 import { validatePassword } from '../../../../lib/password';
 import { checkRateLimits, getClientIp } from '../../../../lib/rate-limit';
 import { RESET_MAX_ATTEMPTS, resetCodeMatches } from '../../../../lib/password-reset';
+import { revokeUserSessions } from '../../../../lib/session';
 
 const INVALID_CODE = { error: 'Баталгаажуулах код буруу эсвэл хугацаа нь дууссан байна.' };
 
@@ -24,6 +25,7 @@ export async function POST(request: Request) {
 
     const limited = await checkRateLimits([
       { key: `reset:ip:${getClientIp(request)}`, limit: 10, windowSeconds: 15 * 60 },
+      { key: `reset:email:${email}`, limit: 10, windowSeconds: 15 * 60 },
     ]);
     if (limited) return limited;
 
@@ -38,13 +40,17 @@ export async function POST(request: Request) {
       [email]
     );
     const reset = rows[0];
-    if (!reset || reset.attempts >= RESET_MAX_ATTEMPTS) {
+    if (!reset) {
       return NextResponse.json(INVALID_CODE, { status: 400 });
     }
 
-    // Буруу код бүрийг тоолж, 5 удаа буруу оруулбал код хүчингүй болно
-    if (!/^\d{6}$/.test(code) || !resetCodeMatches(reset.user_id, code, reset.code_hash)) {
-      await pool.query('UPDATE mt_password_reset SET attempts = attempts + 1 WHERE id = $1', [reset.reset_id]);
+    // Оролдлогыг кодтой тулгахаас ӨМНӨ атомаар бүртгэнэ (5 удаа оролдсоны дараа код хүчингүй).
+    // Уншаад дараа нь нэмбэл зэрэг илгээсэн олон хүсэлт бүгд "0 оролдлого" гэж харж хязгаарыг давдаг байсан.
+    const { rows: claimed } = await pool.query(
+      'UPDATE mt_password_reset SET attempts = attempts + 1 WHERE id = $1 AND attempts < $2 RETURNING attempts',
+      [reset.reset_id, RESET_MAX_ATTEMPTS]
+    );
+    if (claimed.length === 0 || !/^\d{6}$/.test(code) || !resetCodeMatches(reset.user_id, code, reset.code_hash)) {
       return NextResponse.json(INVALID_CODE, { status: 400 });
     }
 
@@ -64,6 +70,9 @@ export async function POST(request: Request) {
     } finally {
       client.release();
     }
+
+    // Нууц үг сэргээсний дараа бүх төхөөрөмж дээрх session-ийг хүчингүй болгоно
+    await revokeUserSessions(reset.user_id);
 
     return NextResponse.json({ message: 'Нууц үг амжилттай шинэчлэгдлээ.' }, { status: 200 });
   } catch (error) {
