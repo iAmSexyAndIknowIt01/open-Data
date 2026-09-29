@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getSession } from '@/src/lib/session';
 import { pool } from '@/src/lib/db';
 import {
+  canEditWork,
   normalizeWorkServices,
   replaceWorkServices,
   sumWorkServices,
@@ -56,7 +57,16 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ success: true, data: rows[0] });
+    const work = rows[0];
+    return NextResponse.json({
+      success: true,
+      data: {
+        ...work,
+        // Админ бүх ажлыг, ажилтан зөвхөн өөрийн хариуцсан ажлыг засна. Хариуцагчийг зөвхөн админ солино.
+        can_edit: canEditWork(session!, work.assigned_employee),
+        can_reassign: session!.role === 'admin',
+      },
+    });
   } catch (error) {
     console.error('Fetch Work Detail Error:', error);
     return NextResponse.json(
@@ -83,7 +93,26 @@ export async function PUT(
     }
 
     const { id } = await params;
+
+    // Ажилтан зөвхөн өөрийн хариуцсан ажлыг засна
+    const { rows: existingRows } = await pool.query(
+      'SELECT assigned_employee FROM mt_works WHERE work_id = $1 AND company_id = $2',
+      [id, companyId]
+    );
+    if (existingRows.length === 0) {
+      return NextResponse.json({ success: false, error: 'Засварлах ажил олдсонгүй' }, { status: 404 });
+    }
+    const currentAssignee = existingRows[0].assigned_employee;
+    if (!canEditWork(session!, currentAssignee)) {
+      return NextResponse.json(
+        { success: false, error: 'Та зөвхөн өөрийн хариуцсан ажлыг засах эрхтэй.' },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
+    // Хариуцсан ажилтныг зөвхөн админ солино; ажилтны хувьд одоогийн утгыг хадгална
+    if (session!.role !== 'admin') body.assigned_employee = currentAssignee ? String(currentAssignee) : '';
     // Хуучин өгөгдөлд "COMPANY" гэх мэт том үсгээр хадгалагдсан утга байдаг тул жижиг үсэг болгоно
     if (typeof body.customer_type === 'string') body.customer_type = body.customer_type.toLowerCase();
     const { 
@@ -142,6 +171,7 @@ export async function PUT(
         due_date = $11, 
         update_date = CURRENT_TIMESTAMP
       WHERE work_id = $12 AND company_id = $13
+        AND ($14::text IS NULL OR assigned_employee::text = $14)
       RETURNING *
     `;
 
@@ -158,7 +188,9 @@ export async function PUT(
       priority || 'medium',
       due_date || null,
       id,
-      companyId
+      companyId,
+      // Ажилтан: шалгасны дараа хариуцагч солигдсон бол шинэчлэхгүй
+      session!.role === 'admin' ? null : session!.userId
     ];
 
     const client = await pool.connect();

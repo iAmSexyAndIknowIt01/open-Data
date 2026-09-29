@@ -57,26 +57,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   };
 
-  // Үндсэн цэснээс Ажилчид, Үйлчилгээг хасаж, Тохиргоог submenu-тэй болгож байна
-  // adminOnly цэсийг ажилтанд харуулахгүй (эрхийн жинхэнэ шалгалт API дээр хийгдэнэ)
+  // Цэсийг session-ий role (mt_user.role)-оор шүүнэ: админ бүх цэсийг, ажилтан зөвхөн "Ажил" цэсийг харна.
+  // Role ачаалагдах хүртэл цэс харуулахгүй (админд ажилтны цэс, эсрэгээр анивчихаас сэргийлнэ).
+  // Эрхийн жинхэнэ шалгалт API дээр хийгдэнэ.
   const isAdmin = userData?.role === 'admin';
 
-  const navItems = [
+  const navItems = !userData ? [] : [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Удирдлага' },
-    { href: '/dashboard/data', icon: Database, label: 'Өгөгдөл', adminOnly: true },
+    { href: '/dashboard/data', icon: Database, label: 'Өгөгдөл' },
     { href: '/dashboard/customers', icon: UserCheck, label: 'Харилцагч' },
     { href: '/dashboard/reservations', icon: CalendarCheck, label: 'Захиалга' },
-    { href: '/dashboard/workshop', icon: Wrench, label: 'Ажил' },
+    { href: '/dashboard/workshop', icon: Wrench, label: 'Ажил', employeeVisible: true },
     { href: '/dashboard/analytics', icon: BarChart3, label: 'Аналитик' },
-  ].filter((item) => !item.adminOnly || isAdmin);
+  ].filter((item) => isAdmin || item.employeeVisible);
 
-  // Тохиргооны доошоо унадаг дэд цэсүүд
-  const settingsSubItems = [
+  // Тохиргооны доошоо унадаг дэд цэсүүд (зөвхөн админд)
+  const settingsSubItems = !isAdmin ? [] : [
     { href: '/dashboard/employees', icon: Users, label: 'Ажилчид' },
     { href: '/dashboard/services', icon: Briefcase, label: 'Үйлчилгээ' },
-    { href: '/dashboard/my-anket', icon: FileText, label: 'Анкет', adminOnly: true },
+    { href: '/dashboard/my-anket', icon: FileText, label: 'Анкет' },
     { href: '/dashboard/settings', icon: Settings, label: 'Ерөнхий тохиргоо' },
-  ].filter((item) => !item.adminOnly || isAdmin);
+  ];
 
   // Хэрэглэгчийн мэдээллийг API-аас татах
   useEffect(() => {
@@ -172,6 +173,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             ))}
 
             {/* Тохиргоо болон Submenu */}
+            {settingsSubItems.length > 0 && (
             <div className="relative" ref={settingsDropdownRef}>
               <button
                 onClick={() => setSettingsDropdownOpen(!settingsDropdownOpen)}
@@ -206,6 +208,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </div>
               )}
             </div>
+            )}
           </nav>
         </div>
 
@@ -285,6 +288,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             ))}
 
             {/* Mobile Settings Accordion */}
+            {settingsSubItems.length > 0 && (
             <div>
               <button
                 onClick={() => setMobileSettingsOpen(!mobileSettingsOpen)}
@@ -316,6 +320,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </div>
               )}
             </div>
+            )}
           </div>
         )}
       </header>

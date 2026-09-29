@@ -73,12 +73,15 @@ export default function WorkFormFields({
   setFormData,
   options,
   errors = {},
+  lockAssignee = false,
 }: {
   formData: WorkFormData;
   setFormData: Dispatch<SetStateAction<WorkFormData>>;
   options: WorkOptionData;
   // useFormValidation-ийн алдаанууд (талбарын name-ээр)
   errors?: Record<string, string>;
+  // Хариуцсан ажилтныг солихыг хориглох (ажилтан өөрийн ажлыг засах үед; зөвхөн админ солино)
+  lockAssignee?: boolean;
 }) {
   // Хуучин бүтэцтэй state (жишээ нь dev-ийн Fast Refresh-ээс үлдсэн) ирсэн ч унахгүй
   const services = useMemo(() => formData.services ?? [], [formData.services]);
@@ -200,7 +203,7 @@ export default function WorkFormFields({
       </div>
 
       <div className="grid grid-cols-1 @sm:grid-cols-2 gap-4">
-        <div>
+        <fieldset disabled={lockAssignee} className={`min-w-0 ${lockAssignee ? 'opacity-70' : ''}`}>
           <label className={labelClass}>Хариуцсан ажилтан *</label>
           <SearchSelect
             required
@@ -215,7 +218,7 @@ export default function WorkFormFields({
             aria-label="Хариуцсан ажилтан"
           />
           <FieldError message={errors.assigned_employee} />
-        </div>
+        </fieldset>
 
         <div>
           <label className={labelClass}>Дуусах хугацаа</label>
