@@ -1,11 +1,11 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useRef, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   Users, UserPlus, Search, X, Check, Filter, 
-  Sparkles, Loader2 
+  Sparkles, Loader2, ChevronLeft, ChevronRight
 } from 'lucide-react';
 // Loading компонент оруулж ирэх хэсэг (зам болон нэрийг өөрийн төслийн бүтцээр шалгаарай)
 import Loading from '@/src/app/components/loading';
@@ -24,10 +24,25 @@ interface User {
   created_at: string;
 }
 
-export default function EmployeesPage() {
+const roles = ['Бүгд', 'Админ', 'Ажилтан'];
+// URL дахь role параметрийн утга <-> дэлгэцэнд харагдах нэр
+const roleParams: Record<string, string> = { 'Админ': 'admin', 'Ажилтан': 'employee' };
+
+function EmployeesContent() {
   const router = useRouter();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedRole, setSelectedRole] = useState('Бүгд');
+  const searchParams = useSearchParams();
+
+  // Шүүлтүүр болон хуудасны төлөвийг URL-аас эхлүүлнэ (дэлгэрэнгүй хуудаснаас буцахад хадгалагдана)
+  const [searchTerm, setSearchTerm] = useState(() => searchParams.get('q') || '');
+  const [selectedRole, setSelectedRole] = useState(() => {
+    const roleParam = searchParams.get('role');
+    return Object.keys(roleParams).find((r) => roleParams[r] === roleParam) || 'Бүгд';
+  });
+  const [currentPage, setCurrentPage] = useState(() => {
+    const pageParam = searchParams.get('page');
+    return pageParam ? parseInt(pageParam, 10) || 1 : 1;
+  });
+  const itemsPerPage = 10;
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -44,8 +59,6 @@ export default function EmployeesPage() {
   });
 
   const [users, setUsers] = useState<User[]>([]);
-
-  const roles = ['Бүгд', 'Админ', 'Ажилтан'];
 
   const fetchUsers = async () => {
     try {
@@ -68,6 +81,29 @@ export default function EmployeesPage() {
     fetchUsers();
   }, []);
 
+  // Шүүлтүүр болон хуудасны төлөвийг URL-тай синк хийх.
+  // Хуудсыг зөвхөн шүүлтүүр бодитоор өөрчлөгдсөн үед 1 болгоно (mount үед биш).
+  const filterKey = JSON.stringify([searchTerm, selectedRole]);
+  const prevFilterKey = useRef(filterKey);
+
+  useEffect(() => {
+    const filtersChanged = prevFilterKey.current !== filterKey;
+    prevFilterKey.current = filterKey;
+
+    const page = filtersChanged ? 1 : currentPage;
+    if (filtersChanged) setCurrentPage(1);
+
+    const params = new URLSearchParams();
+    if (searchTerm) params.set('q', searchTerm);
+    if (roleParams[selectedRole]) params.set('role', roleParams[selectedRole]);
+    if (page > 1) params.set('page', page.toString());
+
+    const query = params.toString();
+    if (query !== searchParams.toString()) {
+      router.replace(`/dashboard/employees${query ? `?${query}` : ''}`, { scroll: false });
+    }
+  }, [filterKey, currentPage]);
+
   const filteredUsers = users.filter(user => {
     const fullName = `${user.first_name || ''} ${user.last_name || ''}`.toLowerCase();
     const matchesSearch = fullName.includes(searchTerm.toLowerCase()) || 
@@ -83,6 +119,12 @@ export default function EmployeesPage() {
 
     return matchesSearch && matchesRole;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / itemsPerPage));
+  const page = Math.min(currentPage, totalPages);
+  const indexOfLastItem = page * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentUsers = filteredUsers.slice(indexOfFirstItem, indexOfLastItem);
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,11 +174,11 @@ export default function EmployeesPage() {
 
         <div className="space-y-2 relative z-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 text-xs font-extrabold tracking-wider uppercase">
-            <Sparkles size={13} /> Хэрэглэгчийн удирдлага
+            <Sparkles size={13} /> Ажилчдын удирдлага
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">Компанийн хэрэглэгчид</h1>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">Компанийн ажилчид</h1>
           <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm max-w-xl">
-            Бүртгэлтэй хэрэглэгчдийн жагсаалтыг харах болон шинээр бүртгэх.
+            Бүртгэлтэй ажилчдын жагсаалтыг харах болон шинээр бүртгэх.
           </p>
         </div>
 
@@ -145,7 +187,7 @@ export default function EmployeesPage() {
           onClick={() => setIsModalOpen(true)}
           className="self-start md:self-auto px-5 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-all shadow-md shadow-blue-500/20 cursor-pointer relative z-10 active:scale-95"
         >
-          <UserPlus size={18} /> Хэрэглэгч нэмэх
+          <UserPlus size={18} /> Ажилтан нэмэх
         </button>
       </div>
 
@@ -202,7 +244,7 @@ export default function EmployeesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-200">
-                {filteredUsers.map((u, index) => {
+                {currentUsers.map((u, index) => {
                   const userId = u.user_id || u.id;
                   return (
                     <tr 
@@ -259,6 +301,41 @@ export default function EmployeesPage() {
           </div>
           <p className="font-extrabold text-slate-800 dark:text-slate-200 text-base">Хэрэглэгч олдсонгүй</p>
           <p className="text-xs text-slate-400 dark:text-slate-400 max-w-sm mx-auto">Таны хайсан нэр эсвэл шүүлтүүрээр тохирох хэрэглэгч олдсонгүй.</p>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {!loading && totalPages > 1 && (
+        <div className="flex items-center justify-between bg-white dark:bg-slate-900 px-5 py-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-2xs">
+          <div className="text-xs font-medium text-slate-400">
+            Нийт <span className="font-bold text-slate-700 dark:text-slate-200">{filteredUsers.length}</span> өгөгдлөөс <span className="font-bold text-slate-700 dark:text-slate-200">{indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredUsers.length)}</span> хүртэл харуулж байна
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setCurrentPage(Math.max(page - 1, 1))}
+              disabled={page === 1}
+              className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+            >
+              <ChevronLeft size={16} />
+            </button>
+
+            <div className="flex items-center gap-1 px-2">
+              <span className="text-xs font-bold text-slate-800 dark:text-white">{page}</span>
+              <span className="text-xs text-slate-400">/</span>
+              <span className="text-xs font-bold text-slate-400">{totalPages}</span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setCurrentPage(Math.min(page + 1, totalPages))}
+              disabled={page === totalPages}
+              className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
         </div>
       )}
 
@@ -390,5 +467,18 @@ export default function EmployeesPage() {
       )}
 
     </div>
+  );
+}
+
+// useSearchParams ашиглаж байгаа тул Suspense дотор экспортлох (Build error гаргахгүй)
+export default function EmployeesPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen w-full items-center justify-center p-10">
+        <Loading />
+      </div>
+    }>
+      <EmployeesContent />
+    </Suspense>
   );
 }

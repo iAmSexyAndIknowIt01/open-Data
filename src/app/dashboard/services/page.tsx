@@ -1,10 +1,11 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
-import { useState, useEffect } from 'react';
-import { 
-  Briefcase, Plus, Search, DollarSign, Clock, 
-  X, CheckCircle2, LayoutList, LayoutGrid, Tag 
+import { useState, useEffect, useRef, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import {
+  Briefcase, Plus, Search, DollarSign, Clock,
+  X, CheckCircle2, XCircle, LayoutList, LayoutGrid, Tag, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import Loading from '@/src/app/components/loading';
 
@@ -18,11 +19,32 @@ interface Service {
   status: string | null;
 }
 
-export default function ServicesPage() {
+function StatusBadge({ status }: { status: string | null }) {
+  return status === 'inactive' ? (
+    <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+      <XCircle size={12} /> Идэвхгүй
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/40">
+      <CheckCircle2 size={12} /> Идэвхтэй
+    </span>
+  );
+}
+
+function ServicesContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+
+  // Шүүлтүүр болон хуудасны төлөвийг URL-аас эхлүүлнэ (дэлгэрэнгүй хуудаснаас буцахад хадгалагдана)
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q') || '');
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>(() => (searchParams.get('view') === 'grid' ? 'grid' : 'list'));
+  const [currentPage, setCurrentPage] = useState(() => {
+    const pageParam = searchParams.get('page');
+    return pageParam ? parseInt(pageParam, 10) || 1 : 1;
+  });
+  const itemsPerPage = 9;
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -54,6 +76,28 @@ export default function ServicesPage() {
     fetchServices();
   }, []);
 
+  // Шүүлтүүр болон хуудасны төлөвийг URL-тай синк хийх.
+  // Хуудсыг зөвхөн хайлт бодитоор өөрчлөгдсөн үед 1 болгоно (mount үед биш).
+  const prevSearchQuery = useRef(searchQuery);
+
+  useEffect(() => {
+    const searchChanged = prevSearchQuery.current !== searchQuery;
+    prevSearchQuery.current = searchQuery;
+
+    const page = searchChanged ? 1 : currentPage;
+    if (searchChanged) setCurrentPage(1);
+
+    const params = new URLSearchParams();
+    if (searchQuery) params.set('q', searchQuery);
+    if (viewMode !== 'list') params.set('view', viewMode);
+    if (page > 1) params.set('page', page.toString());
+
+    const query = params.toString();
+    if (query !== searchParams.toString()) {
+      router.replace(`/dashboard/services${query ? `?${query}` : ''}`, { scroll: false });
+    }
+  }, [searchQuery, viewMode, currentPage]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -83,6 +127,12 @@ export default function ServicesPage() {
     s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (s.category && s.category.toLowerCase().includes(searchQuery.toLowerCase()))
   );
+
+  const totalPages = Math.max(1, Math.ceil(filteredServices.length / itemsPerPage));
+  const page = Math.min(currentPage, totalPages);
+  const indexOfLastItem = page * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentServices = filteredServices.slice(indexOfFirstItem, indexOfLastItem);
 
   return (
     <div className="space-y-6 pb-20 font-sans antialiased text-slate-800 dark:text-slate-100">
@@ -157,8 +207,12 @@ export default function ServicesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-300">
-                {filteredServices.map((service) => (
-                  <tr key={service.service_id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/60 transition-colors">
+                {currentServices.map((service) => (
+                  <tr
+                    key={service.service_id}
+                    onClick={() => router.push(`/dashboard/services/${service.service_id}`)}
+                    className="hover:bg-slate-50/80 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
+                  >
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center font-black shrink-0">
@@ -185,9 +239,7 @@ export default function ServicesPage() {
                       </div>
                     </td>
                     <td className="py-4 px-6">
-                      <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/40">
-                        <CheckCircle2 size={12} /> Идэвхтэй
-                      </span>
+                      <StatusBadge status={service.status} />
                     </td>
                   </tr>
                 ))}
@@ -198,8 +250,12 @@ export default function ServicesPage() {
       ) : (
         // GRID VIEW
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredServices.map((service) => (
-            <div key={service.service_id} className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-2xs space-y-4 hover:border-blue-200 dark:hover:border-blue-800 transition-all">
+          {currentServices.map((service) => (
+            <div
+              key={service.service_id}
+              onClick={() => router.push(`/dashboard/services/${service.service_id}`)}
+              className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-2xs space-y-4 hover:border-blue-200 dark:hover:border-blue-800 transition-all cursor-pointer"
+            >
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center font-black shrink-0">
@@ -212,9 +268,7 @@ export default function ServicesPage() {
                     </span>
                   </div>
                 </div>
-                <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/40">
-                  <CheckCircle2 size={12} /> Идэвхтэй
-                </span>
+                <StatusBadge status={service.status} />
               </div>
 
               <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">{service.description || 'Тайлбар байхгүй'}</p>
@@ -229,6 +283,41 @@ export default function ServicesPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {!loading && totalPages > 1 && (
+        <div className="flex items-center justify-between bg-white dark:bg-slate-900 px-5 py-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-2xs">
+          <div className="text-xs font-medium text-slate-400">
+            Нийт <span className="font-bold text-slate-700 dark:text-slate-200">{filteredServices.length}</span> өгөгдлөөс <span className="font-bold text-slate-700 dark:text-slate-200">{indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredServices.length)}</span> хүртэл харуулж байна
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setCurrentPage(Math.max(page - 1, 1))}
+              disabled={page === 1}
+              className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+            >
+              <ChevronLeft size={16} />
+            </button>
+
+            <div className="flex items-center gap-1 px-2">
+              <span className="text-xs font-bold text-slate-800 dark:text-white">{page}</span>
+              <span className="text-xs text-slate-400">/</span>
+              <span className="text-xs font-bold text-slate-400">{totalPages}</span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setCurrentPage(Math.min(page + 1, totalPages))}
+              disabled={page === totalPages}
+              className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
         </div>
       )}
 
@@ -330,5 +419,18 @@ export default function ServicesPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// useSearchParams ашиглаж байгаа тул Suspense дотор экспортлох (Build error гаргахгүй)
+export default function ServicesPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen w-full items-center justify-center p-10">
+        <Loading />
+      </div>
+    }>
+      <ServicesContent />
+    </Suspense>
   );
 }
