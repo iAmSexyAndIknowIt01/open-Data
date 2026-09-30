@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import Loading from '@/src/app/components/loading';
 import SearchSelect from '@/src/app/components/SearchSelect';
+import InfoTip from '@/src/app/components/InfoTip';
 import { useFormValidation, FormErrorBanner } from '@/src/app/components/FormValidation';
 import WorkFormFields, { emptyWorkForm, type WorkFormData, type WorkOptionData } from './WorkFormFields';
 
@@ -508,7 +509,8 @@ function WorkshopContent() {
 
           <div className="flex items-center justify-between lg:justify-end gap-2 flex-wrap">
             <span className="text-xs font-bold text-slate-400">
-              Үр дүн: <span className="text-slate-800 dark:text-slate-200">{filteredWorks.length}</span>
+              Үр дүн: <span className="text-slate-800 dark:text-slate-200">{filteredWorks.length}</span>{' '}
+              <InfoTip size={12} text="Хайлт болон сонгосон шүүлтүүрүүдэд таарсан ажлын тоо." />
             </span>
             <div className="h-4 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block" />
             <select
@@ -800,8 +802,12 @@ function WorkshopContent() {
                   <th className="py-3.5 px-6">Харилцагч</th>
                   <th className="py-3.5 px-6">Үйлчилгээ</th>
                   <th className="py-3.5 px-6">Ажилтан</th>
-                  <th className="py-3.5 px-6">Зэрэглэл</th>
-                  <th className="py-3.5 px-6">Үнэ</th>
+                  <th className="py-3.5 px-6">
+                    <span className="inline-flex items-center gap-1">Зэрэглэл <InfoTip size={12} text="Ажлын яаралтай байдал: Энгийн, Дунд, Яаралтай." /></span>
+                  </th>
+                  <th className="py-3.5 px-6">
+                    <span className="inline-flex items-center gap-1">Үнэ <InfoTip size={12} text="Ажлын нийт үнэ: үйлчилгээ бүрийн тоо × нэгж үнийн нийлбэр." /></span>
+                  </th>
                   <th className="py-3.5 px-6">Төлөв</th>
                 </tr>
               </thead>
@@ -899,7 +905,7 @@ function WorkshopContent() {
               </div>
 
               <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800 text-xs font-bold">
-                <span className="text-slate-400">Нийт үнэ:</span>
+                <span className="text-slate-400 inline-flex items-center gap-1">Нийт үнэ: <InfoTip size={12} text="Үйлчилгээ бүрийн тоо × нэгж үнийн нийлбэр." /></span>
                 <span className="text-blue-600 dark:text-blue-400 text-sm">{work.price ? `${Number(work.price).toLocaleString()} ₮` : '0 ₮'}</span>
               </div>
             </div>
@@ -911,7 +917,7 @@ function WorkshopContent() {
       {!loading && totalPages > 1 && (
         <div className="flex items-center justify-between bg-white dark:bg-slate-900 px-5 py-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-2xs">
           <div className="text-xs font-medium text-slate-400">
-            Нийт <span className="font-bold text-slate-700 dark:text-slate-200">{filteredWorks.length}</span> өгөгдлөөс <span className="font-bold text-slate-700 dark:text-slate-200">{indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredWorks.length)}</span> хүртэл харуулж байна
+            Шүүлтүүрт таарсан <span className="font-bold text-slate-700 dark:text-slate-200">{filteredWorks.length}</span> ажлаас <span className="font-bold text-slate-700 dark:text-slate-200">{indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredWorks.length)}</span> хүртэл харуулж байна
           </div>
           
           <div className="flex items-center gap-1.5">

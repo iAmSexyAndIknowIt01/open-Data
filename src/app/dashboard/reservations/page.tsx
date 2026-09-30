@@ -10,6 +10,7 @@ import {
 import Loading from '@/src/app/components/loading';
 import SearchSelect from '@/src/app/components/SearchSelect';
 import Tooltip from '@/src/app/components/Tooltip';
+import InfoTip from '@/src/app/components/InfoTip';
 import { useFormValidation, FieldError, FormErrorBanner, invalidClass } from '@/src/app/components/FormValidation';
 
 // Формын нэг үйлчилгээний мөр. service_id хоосон бол каталогоос устсан (хадгалсан нэрээр үлдэнэ).
@@ -683,6 +684,7 @@ function ReservationsContent() {
             {
               label: 'Нийт захиалга',
               value: todayStats.total,
+              tip: 'Өнөөдрийн бүх захиалгаас цуцлагдсан болон ирээгүйг хассан тоо. Дарвал өнөөдрийн жагсаалтыг харуулна.',
               status: 'all',
               color: 'text-slate-900 dark:text-white',
               dot: 'bg-slate-400',
@@ -694,6 +696,7 @@ function ReservationsContent() {
             {
               label: 'Баталгаажуулах',
               value: todayStats.pending,
+              tip: 'Өнөөдрийн “Хүлээгдэж буй” төлөвтэй захиалгын тоо. Дарвал тэдгээрийг шүүж харуулна.',
               status: 'pending',
               color: 'text-amber-600 dark:text-amber-400',
               dot: STATUS_META.pending.dot,
@@ -702,6 +705,7 @@ function ReservationsContent() {
             {
               label: 'Ирэхийг хүлээж буй',
               value: todayStats.confirmed,
+              tip: 'Өнөөдрийн “Баталгаажсан” төлөвтэй захиалгын тоо. Дарвал тэдгээрийг шүүж харуулна.',
               status: 'confirmed',
               color: 'text-blue-600 dark:text-blue-400',
               dot: STATUS_META.confirmed.dot,
@@ -710,6 +714,7 @@ function ReservationsContent() {
             {
               label: 'Үйлчлүүлсэн',
               value: todayStats.completed,
+              tip: `Өнөөдрийн “Үйлчлүүлсэн” төлөвтэй захиалгын тоо. Ногоон шугам = үйлчлүүлсэн ÷ нийт захиалга (${todayStats.completed} ÷ ${todayStats.total}).`,
               status: 'completed',
               color: 'text-emerald-600 dark:text-emerald-400',
               dot: STATUS_META.completed.dot,
@@ -719,11 +724,11 @@ function ReservationsContent() {
           ].map((s) => {
             const active = activePreset === 'today' && statusFilter === s.status;
             return (
+              <Tooltip key={s.label} text={s.tip} className="flex">
               <button
-                key={s.label}
                 onClick={() => showToday(s.status)}
                 aria-pressed={active}
-                className={`group text-left bg-white dark:bg-slate-900 p-4 rounded-2xl border shadow-2xs transition-all cursor-pointer hover:border-blue-300 dark:hover:border-slate-600 flex flex-col ${
+                className={`group w-full text-left bg-white dark:bg-slate-900 p-4 rounded-2xl border shadow-2xs transition-all cursor-pointer hover:border-blue-300 dark:hover:border-slate-600 flex flex-col ${
                   active ? 'border-blue-500 ring-2 ring-blue-500/15' : 'border-slate-100 dark:border-slate-800'
                 }`}
               >
@@ -742,6 +747,7 @@ function ReservationsContent() {
                 )}
                 <span className="mt-1.5 text-[11px] leading-snug text-slate-500 dark:text-slate-400">{loading ? '' : s.hint}</span>
               </button>
+              </Tooltip>
             );
           })}
         </div>
@@ -943,14 +949,17 @@ function ReservationsContent() {
         <div className="space-y-5">
           <p className="text-xs font-bold text-slate-400 px-1">
             Нийт <span className="text-slate-800 dark:text-slate-200">{filtered.length}</span> захиалга,{' '}
-            <span className="text-slate-800 dark:text-slate-200">{grouped.length}</span> өдөр
+            <span className="text-slate-800 dark:text-slate-200">{grouped.length}</span> өдөр{' '}
+            <InfoTip size={12} text="Одоогийн хугацаа, төлөв, хайлтын шүүлтүүрт таарсан захиалгын тоо ба тэдгээр хэдэн өөр өдөрт хуваарилагдсан." />
           </p>
           {grouped.map(([date, items]) => (
             <section key={date} className="space-y-2">
               <div className="flex items-center justify-between px-1">
                 <h2 className={`flex items-center gap-2 text-xs font-black ${date === today ? 'text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400'}`}>
                   <CalendarDays size={14} /> {formatDateHeading(date)}
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{items.length}</span>
+                  <Tooltip text="Энэ өдрийн захиалгын тоо (шүүлтүүрийн дагуу)">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{items.length}</span>
+                  </Tooltip>
                 </h2>
                 {date >= today && (
                   <button
@@ -1189,7 +1198,8 @@ function ReservationsContent() {
                     ))}
                     <div className="flex items-center justify-between gap-2 px-3 py-2.5 bg-slate-50/70 dark:bg-slate-800/40 rounded-b-xl text-xs">
                       <span className="font-bold text-slate-500 dark:text-slate-400">
-                        Нийт{servicesDuration > 0 && <> · <span className="text-slate-800 dark:text-slate-200">{formatDuration(servicesDuration)}</span></>}
+                        Нийт{servicesDuration > 0 && <> · <span className="text-slate-800 dark:text-slate-200">{formatDuration(servicesDuration)}</span></>}{' '}
+                        <InfoTip size={12} text="Сонгосон үйлчилгээнүүдийн үнэ болон үргэлжлэх хугацааны нийлбэр. Хугацаа нь каталогт тохируулсан үйлчилгээ бүрийн минутаас бодогдоно." />
                       </span>
                       <span className="text-sm font-black text-blue-600 dark:text-blue-400 tabular-nums">{servicesPrice.toLocaleString()} ₮</span>
                     </div>

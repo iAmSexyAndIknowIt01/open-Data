@@ -7,6 +7,8 @@ import {
   CheckCheck, BarChart3, Clock,
 } from 'lucide-react';
 import LoadingComponent from '@/src/app/components/loading';
+import InfoTip from '@/src/app/components/InfoTip';
+import Tooltip from '@/src/app/components/Tooltip';
 import Link from 'next/link';
 
 interface Comparison {
@@ -78,15 +80,18 @@ function initials(name: string) {
 function DeltaBadge({ value }: { value: Comparison }) {
   if (value.previous === 0) {
     return (
+      <Tooltip text="Өмнөх сарын ижил хугацаанд 0 байсан тул хувиар харьцуулах боломжгүй.">
       <span className="text-xs font-bold text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800 px-2.5 py-1 rounded-full">
         Харьцуулах өгөгдөлгүй
       </span>
+      </Tooltip>
     );
   }
   const pct = Math.round(((value.current - value.previous) / value.previous) * 1000) / 10;
   const up = pct >= 0;
   const Icon = up ? ArrowUpRight : ArrowDownRight;
   return (
+    <Tooltip text={`Өмнөх сарын ижил хугацаатай харьцуулсан өөрчлөлт: (${value.current.toLocaleString('en-US')} − ${value.previous.toLocaleString('en-US')}) ÷ ${value.previous.toLocaleString('en-US')} × 100`}>
     <span
       className={`inline-flex items-center gap-1 text-xs font-extrabold px-2.5 py-1 rounded-full ${
         up
@@ -97,6 +102,7 @@ function DeltaBadge({ value }: { value: Comparison }) {
       <Icon size={14} aria-hidden /> {up ? '+' : ''}
       {Math.abs(pct) >= 100 ? Math.round(pct).toLocaleString('en-US') : pct}%
     </span>
+    </Tooltip>
   );
 }
 
@@ -108,7 +114,8 @@ function WeekChart({ data }: { data: DashboardOverview['lastWeek'] }) {
   return (
     <div className="space-y-3">
       <p className="text-3xl font-black text-slate-900 dark:text-white">
-        {total} <span className="text-sm font-bold text-slate-500 dark:text-slate-400">ажил бүртгэгдсэн</span>
+        {total} <span className="text-sm font-bold text-slate-500 dark:text-slate-400">ажил бүртгэгдсэн</span>{' '}
+        <InfoTip text="Өнөөдрийг оруулаад сүүлийн 7 хоногт (Улаанбаатарын цагаар) шинээр бүртгэгдсэн ажлын нийт тоо. Төлөвөөс үл хамаарна." />
       </p>
       <div className="relative h-44 border-b border-slate-200 dark:border-slate-700" onMouseLeave={() => setActive(null)}>
         <div className="absolute inset-x-0 top-0 border-t border-slate-100 dark:border-slate-800" />
@@ -298,13 +305,15 @@ export default function DashboardPage() {
               <Briefcase size={22} />
             </div>
             {alerts.overdue > 0 && (
-              <span className="inline-flex items-center gap-1 text-xs font-extrabold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/50 px-2.5 py-1 rounded-full">
-                <Clock size={14} aria-hidden /> {alerts.overdue} хоцорсон
-              </span>
+              <Tooltip text="Хүлээгдэж буй эсвэл хийгдэж буй бөгөөд дуусах хугацаа нь өнгөрсөн ажлын тоо.">
+                <span className="inline-flex items-center gap-1 text-xs font-extrabold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/50 px-2.5 py-1 rounded-full">
+                  <Clock size={14} aria-hidden /> {alerts.overdue} хоцорсон
+                </span>
+              </Tooltip>
             )}
           </div>
           <div>
-            <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-1">Идэвхтэй ажил</h3>
+            <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-1 flex items-center gap-1.5">Идэвхтэй ажил <InfoTip text="Одоо “Хүлээгдэж буй” болон “Хийгдэж байна” төлөвтэй бүх ажлын нийлбэр. Дууссан, цуцлагдсан ажил орохгүй." /></h3>
             <p className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">{activeTotal}</p>
           </div>
           <div className="pt-3 border-t border-slate-50 dark:border-slate-800 flex items-center justify-between text-xs text-slate-400">
@@ -321,11 +330,11 @@ export default function DashboardPage() {
             <DeltaBadge value={stats.revenue} />
           </div>
           <div>
-            <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-1">Энэ сарын орлого</h3>
+            <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-1 flex items-center gap-1.5">Энэ сарын орлого <InfoTip text="Энэ сарын 1-нээс хойш бүртгэгдсэн бөгөөд одоо “Дууссан” төлөвтэй ажлуудын үнийн нийлбэр. Хүлээгдэж буй, хийгдэж буй, цуцлагдсан ажлын үнэ орохгүй." /></h3>
             <p className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">{formatMoney(stats.revenue.current)}</p>
           </div>
           <div className="pt-3 border-t border-slate-50 dark:border-slate-800 flex items-center justify-between text-xs text-slate-400">
-            <span>Өмнөх сарын ижил хугацаанд</span>
+            <span className="inline-flex items-center gap-1">Өмнөх сарын ижил хугацаанд <InfoTip size={12} text="Өмнөх сарын 1-нээс яг нэг сарын өмнөх өнөөдрийн мөч хүртэлх утга. Бүтэн сартай биш, ижил урттай хугацаатай харьцуулна." /></span>
             <span className="font-bold text-slate-600 dark:text-slate-300">{formatMoney(stats.revenue.previous)}</span>
           </div>
         </div>
@@ -338,11 +347,11 @@ export default function DashboardPage() {
             <DeltaBadge value={stats.newCustomers} />
           </div>
           <div>
-            <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-1">Энэ сарын шинэ харилцагч</h3>
+            <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-1 flex items-center gap-1.5">Энэ сарын шинэ харилцагч <InfoTip text="Энэ сарын 1-нээс хойш бүртгэгдсэн хувь хүн болон байгууллага харилцагчийн нийт тоо." /></h3>
             <p className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">{stats.newCustomers.current}</p>
           </div>
           <div className="pt-3 border-t border-slate-50 dark:border-slate-800 flex items-center justify-between text-xs text-slate-400">
-            <span>Өмнөх сарын ижил хугацаанд</span>
+            <span className="inline-flex items-center gap-1">Өмнөх сарын ижил хугацаанд <InfoTip size={12} text="Өмнөх сарын 1-нээс яг нэг сарын өмнөх өнөөдрийн мөч хүртэлх утга. Бүтэн сартай биш, ижил урттай хугацаатай харьцуулна." /></span>
             <span className="font-bold text-slate-600 dark:text-slate-300">{stats.newCustomers.previous}</span>
           </div>
         </div>
@@ -356,7 +365,7 @@ export default function DashboardPage() {
           <div>
             <div className="pb-4 border-b border-slate-100 dark:border-slate-800">
               <h2 className="font-extrabold text-base text-slate-900 dark:text-white">Сүүлийн 7 хоногийн ажил</h2>
-              <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">Өдөр бүр бүртгэгдсэн ажлын тоо</p>
+              <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">Өдөр бүр бүртгэгдсэн ажлын тоо. Багана дээр очиж тухайн өдрийн тоог харна.</p>
             </div>
             <div className="mt-6">
               <WeekChart data={data.lastWeek} />
@@ -377,9 +386,11 @@ export default function DashboardPage() {
               <h2 className="font-extrabold text-base text-slate-900 dark:text-white flex items-center gap-2">
                 <FileText size={18} className="text-blue-600 dark:text-blue-400" /> Сүүлийн анкетууд
               </h2>
-              <span className="text-xs font-extrabold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-2.5 py-1 rounded-full">
-                7 хоногт {data.submissionsLastWeek}
-              </span>
+              <Tooltip text="Сүүлийн 7 хоногт (7 × 24 цаг) ирсэн анкетын тоо. Доорх жагсаалтад хамгийн сүүлийн 5-ыг харуулна.">
+                <span className="text-xs font-extrabold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-2.5 py-1 rounded-full">
+                  7 хоногт {data.submissionsLastWeek}
+                </span>
+              </Tooltip>
             </div>
 
             {data.recentSubmissions.length === 0 ? (
@@ -403,9 +414,11 @@ export default function DashboardPage() {
                           )}
                         </div>
                         {isNew && (
-                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full shrink-0 bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
-                            Шинэ
-                          </span>
+                          <Tooltip text="Сүүлийн 24 цагт ирсэн анкет" className="shrink-0">
+                            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
+                              Шинэ
+                            </span>
+                          </Tooltip>
                         )}
                       </div>
                       <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-medium">
@@ -435,7 +448,7 @@ export default function DashboardPage() {
             <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 text-[11px] font-black uppercase tracking-wider mb-2">
               <BarChart3 size={13} /> Гүйцэтгэлийн статистик
             </div>
-            <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight">Энэ сард дуусгасан ажил</h2>
+            <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">Энэ сард дуусгасан ажил <InfoTip size={15} text="Ажилтанд хуваарилагдсан, “Дууссан” төлөвтэй бөгөөд энэ сард сүүлд шинэчлэгдсэн ажлуудыг тоолно. Эрэмбэ: дуусгасан ажлын тоо, тэнцвэл орлогоор." /></h2>
             <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">Энэ сард хамгийн олон ажил дуусгасан 5 ажилтан</p>
           </div>
           <Link
@@ -469,7 +482,10 @@ export default function DashboardPage() {
                       <div className="min-w-0">
                         <h4 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-white truncate">{emp.name}</h4>
                         <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">
-                          {emp.position || 'Ажилтан'} • {formatMoney(emp.revenue)}
+                          {emp.position || 'Ажилтан'} •{' '}
+                          <Tooltip text="Энэ сард дуусгасан ажлуудын үнийн нийлбэр">
+                            <span>{formatMoney(emp.revenue)}</span>
+                          </Tooltip>
                         </p>
                       </div>
                     </div>
@@ -482,9 +498,11 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  <div className="w-full bg-slate-200/70 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full ${BAR_FILL}`} style={{ width: `${percentage}%` }}></div>
-                  </div>
+                  <Tooltip text={`Тэргүүлэгчтэй харьцуулсан: ${emp.completed} ÷ ${maxCompleted} = ${percentage}%`} className="w-full">
+                    <div className="w-full bg-slate-200/70 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full ${BAR_FILL}`} style={{ width: `${percentage}%` }}></div>
+                    </div>
+                  </Tooltip>
                 </div>
               );
             })}

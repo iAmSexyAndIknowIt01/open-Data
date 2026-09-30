@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 // Loading компонент оруулж ирэх хэсэг (зам болон нэрийг өөрийн төслийн бүтцээр шалгаарай)
 import Loading from '@/src/app/components/loading';
+import InfoTip from '@/src/app/components/InfoTip';
 
 interface User {
   user_id?: string;
@@ -237,9 +238,13 @@ function EmployeesContent() {
               <thead>
                 <tr className="bg-slate-50/80 dark:bg-slate-800/60 border-b border-slate-100 dark:border-slate-800 text-[11px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-400">
                   <th className="py-4 px-6">Хэрэглэгч</th>
-                  <th className="py-4 px-6">Эрх / Албан тушаал</th>
+                  <th className="py-4 px-6">
+                    <span className="inline-flex items-center gap-1">Эрх / Албан тушаал <InfoTip size={12} text="Админ: бүх цэсийг харж, бүх ажлыг засна. Ажилтан: зөвхөн “Ажил” цэсийг харж, өөрт хуваарилсан ажлаа засна." /></span>
+                  </th>
                   <th className="py-4 px-6">Холбоо барих</th>
-                  <th className="py-4 px-6">Статус</th>
+                  <th className="py-4 px-6">
+                    <span className="inline-flex items-center gap-1">Статус <InfoTip size={12} text="Идэвхгүй болгосон ажилтан системд нэвтэрч чадахгүй бөгөөд цаг захиалгад хариуцагчаар сонгогдохгүй." /></span>
+                  </th>
                   <th className="py-4 px-6 text-right">Бүртгэгдсэн огноо</th>
                 </tr>
               </thead>

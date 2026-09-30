@@ -8,6 +8,7 @@ import {
   CheckCircle2, XCircle, Edit3, Save, X, Loader, ShieldCheck
 } from 'lucide-react';
 import Loading from '@/src/app/components/loading';
+import InfoTip from '@/src/app/components/InfoTip';
 
 interface ServiceDetail {
   service_id: number;
@@ -203,7 +204,10 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
             <div className="flex items-center gap-3 p-4 rounded-2xl bg-slate-50/60 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
               <DollarSign size={18} className="text-blue-600 dark:text-blue-400 shrink-0" />
               <div className="w-full">
-                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Үнэ (₮)</p>
+                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                  Үнэ (₮)
+                  <InfoTip size={12} text="Каталогийн үндсэн үнэ. Шинэ ажил, цаг захиалгад нэмэхэд автоматаар бөглөгдөнө. Үнийг өөрчлөхөд өмнө бүртгэсэн ажлын үнэ өөрчлөгдөхгүй." />
+                </p>
                 {!isEditing ? (
                   <p className="font-bold text-slate-800 dark:text-slate-200">{Number(service.price ?? 0).toLocaleString()} ₮</p>
                 ) : (
@@ -222,7 +226,10 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
             <div className="flex items-center gap-3 p-4 rounded-2xl bg-slate-50/60 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
               <Clock size={18} className="text-blue-600 dark:text-blue-400 shrink-0" />
               <div className="w-full">
-                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Хугацаа (минутаар)</p>
+                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                  Хугацаа (минутаар)
+                  <InfoTip size={12} text="Үйлчилгээ үргэлжлэх хугацаа. Цаг захиалахад дуусах цагийг сонгосон үйлчилгээнүүдийн хугацааны нийлбэрээр автоматаар бодно." />
+                </p>
                 {!isEditing ? (
                   <p className="font-bold text-slate-800 dark:text-slate-200">{service.duration ? `${service.duration} мин` : 'Байхгүй'}</p>
                 ) : (

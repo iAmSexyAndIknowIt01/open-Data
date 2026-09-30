@@ -3,6 +3,8 @@
 import { useMemo, type Dispatch, type SetStateAction } from 'react';
 import { Trash2, Briefcase } from 'lucide-react';
 import SearchSelect from '@/src/app/components/SearchSelect';
+import InfoTip from '@/src/app/components/InfoTip';
+import Tooltip from '@/src/app/components/Tooltip';
 import { FieldError, invalidClass } from '@/src/app/components/FormValidation';
 
 // Ажлын нэг үйлчилгээний мөр. service_id хоосон бол каталогоос устсан үйлчилгээ (хадгалсан нэрээр үлдэнэ).
@@ -243,8 +245,8 @@ export default function WorkFormFields({
             <div className="hidden @md:grid grid-cols-[1fr_4.5rem_7.5rem_6.5rem_2rem] gap-2 px-3 py-2 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
               <span>Үйлчилгээ</span>
               <span>Тоо</span>
-              <span>Нэгж үнэ (₮)</span>
-              <span className="text-right">Дүн</span>
+              <span className="inline-flex items-center gap-1">Нэгж үнэ (₮) <InfoTip size={11} text="Үйлчилгээ нэмэхэд каталогийн үнэ автоматаар бөглөгдөнө. Энэ ажилд зориулж өөрчилж болно, каталог өөрчлөгдөхгүй." /></span>
+              <span className="text-right inline-flex items-center justify-end gap-1">Дүн <InfoTip size={11} text="Тоо × нэгж үнэ" /></span>
               <span />
             </div>
             {services.map((line, i) => (
@@ -291,9 +293,11 @@ export default function WorkFormFields({
                     className={withError(`${inputClass} py-2!`, `services.${i}.price`)}
                     aria-label="Нэгж үнэ"
                   />
-                  <span className="text-xs font-black text-slate-900 dark:text-white text-right tabular-nums whitespace-nowrap">
-                    {lineTotal(line).toLocaleString()} ₮
-                  </span>
+                  <Tooltip text={`${Number(line.quantity) || 0} × ${(Number(line.price) || 0).toLocaleString()} ₮`} className="justify-end">
+                    <span className="text-xs font-black text-slate-900 dark:text-white text-right tabular-nums whitespace-nowrap">
+                      {lineTotal(line).toLocaleString()} ₮
+                    </span>
+                  </Tooltip>
                 </div>
                 {(errors[`services.${i}.quantity`] || errors[`services.${i}.price`]) && (
                   <div className="col-span-full -mt-1">
@@ -303,7 +307,9 @@ export default function WorkFormFields({
               </div>
             ))}
             <div className="flex items-center justify-between px-3 py-2.5 bg-slate-50/70 dark:bg-slate-800/40 rounded-b-xl">
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Нийт</span>
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 inline-flex items-center gap-1">
+                Нийт <InfoTip size={12} text="Бүх мөрийн дүнгийн нийлбэр (тоо × нэгж үнэ). Энэ нь ажлын нийт үнэ болж хадгалагдана." />
+              </span>
               <span className="text-sm font-black text-blue-600 dark:text-blue-400 tabular-nums">{servicesTotal.toLocaleString()} ₮</span>
             </div>
           </div>
@@ -328,7 +334,10 @@ export default function WorkFormFields({
 
       <div className="grid grid-cols-1 @sm:grid-cols-3 gap-4">
         <div>
-          <label className={labelClass}>Төлөв</label>
+          <label className={`${labelClass} flex items-center gap-1`}>
+            Төлөв
+            <InfoTip size={12} text="Хүлээгдэж буй: эхлээгүй. Хийгдэж байна: ажиллаж байгаа. Дууссан: орлогод тооцогдоно. Цуцлагдсан: гүйцэтгэл, орлогын тооцоонд орохгүй." />
+          </label>
           <select value={formData.status} onChange={(e) => update({ status: e.target.value })} className={selectClass}>
             <option value="pending">Хүлээгдэж буй</option>
             <option value="in_progress">Хийгдэж байна</option>
@@ -338,7 +347,10 @@ export default function WorkFormFields({
         </div>
 
         <div>
-          <label className={labelClass}>Зэрэглэл</label>
+          <label className={`${labelClass} flex items-center gap-1`}>
+            Зэрэглэл
+            <InfoTip size={12} text="Ажлын яаралтай байдал. Жагсаалтыг зэрэглэлээр шүүж, эрэмбэлэхэд ашиглана. Тооцоонд нөлөөлөхгүй." />
+          </label>
           <select value={formData.priority} onChange={(e) => update({ priority: e.target.value })} className={selectClass}>
             <option value="low">Энгийн</option>
             <option value="medium">Дунд</option>
@@ -347,7 +359,17 @@ export default function WorkFormFields({
         </div>
 
         <div>
-          <label className={labelClass}>{hasServices ? 'Нийт үнэ (₮)' : 'Үнэ (₮)'}</label>
+          <label className={`${labelClass} flex items-center gap-1`}>
+            {hasServices ? 'Нийт үнэ (₮)' : 'Үнэ (₮)'}
+            <InfoTip
+              size={12}
+              text={
+                hasServices
+                  ? 'Үйлчилгээнүүдийн дүнгээс автоматаар бодогдоно, гараар өөрчлөх боломжгүй. Ажил “Дууссан” төлөвт орвол энэ дүн орлогод тооцогдоно.'
+                  : 'Ажлын үнэ. Ажил “Дууссан” төлөвт орвол энэ дүн орлогод тооцогдоно.'
+              }
+            />
+          </label>
           {hasServices ? (
             <div
               className={`${inputClass} bg-slate-50! dark:bg-slate-800/60! text-slate-500! dark:text-slate-400! tabular-nums`}

@@ -8,6 +8,7 @@ import {
   X, CheckCircle2, XCircle, LayoutList, LayoutGrid, Tag, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import Loading from '@/src/app/components/loading';
+import InfoTip from '@/src/app/components/InfoTip';
 
 interface Service {
   service_id: string;
@@ -201,8 +202,12 @@ function ServicesContent() {
                 <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 text-[11px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider">
                   <th className="py-4 px-6">Үйлчилгээний нэр</th>
                   <th className="py-4 px-6">Ангилал</th>
-                  <th className="py-4 px-6">Үнэ</th>
-                  <th className="py-4 px-6">Хугацаа</th>
+                  <th className="py-4 px-6">
+                    <span className="inline-flex items-center gap-1">Үнэ <InfoTip size={12} text="Каталогийн үндсэн үнэ. Ажил, цаг захиалгад нэмэхэд энэ үнэ автоматаар бөглөгдөнө. Тухайн ажилд өөрчилж болох бөгөөд каталогийн үнэ өөрчлөгдөхгүй." /></span>
+                  </th>
+                  <th className="py-4 px-6">
+                    <span className="inline-flex items-center gap-1">Хугацаа <InfoTip size={12} text="Үйлчилгээ үргэлжлэх хугацаа (минут). Цаг захиалахад сонгосон үйлчилгээнүүдийн хугацааг нэмж дуусах цагийг автоматаар бодно." /></span>
+                  </th>
                   <th className="py-4 px-6">Төлөв</th>
                 </tr>
               </thead>
