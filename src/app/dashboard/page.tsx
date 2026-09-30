@@ -110,14 +110,37 @@ function WeekChart({ data }: { data: DashboardOverview['lastWeek'] }) {
   const [active, setActive] = useState<number | null>(null);
   const max = Math.max(...data.map((d) => d.works), 1);
   const total = data.reduce((sum, d) => sum + d.works, 0);
+  const busiest = data.reduce((best, d) => (d.works > best.works ? d : best), data[0]);
+  const weekdayOf = (day: string) => {
+    const [y, m, dd] = day.split('-').map(Number);
+    return WEEKDAYS[new Date(Date.UTC(y, m - 1, dd)).getUTCDay()];
+  };
+  const summary = [
+    {
+      label: 'Өдрийн дундаж',
+      value: (total / data.length).toFixed(1),
+      hint: `7 хоногийн нийт ажлыг өдрийн тоонд хуваасан: ${total} ÷ ${data.length}`,
+    },
+    {
+      label: 'Хамгийн их',
+      value: busiest && busiest.works > 0 ? `${weekdayOf(busiest.day)} · ${busiest.works}` : '—',
+      hint: 'Сүүлийн 7 хоногт хамгийн олон ажил бүртгэгдсэн өдөр ба тэр өдрийн ажлын тоо',
+    },
+    {
+      label: 'Өнөөдөр',
+      value: String(data[data.length - 1]?.works ?? 0),
+      hint: 'Өнөөдөр (Улаанбаатарын цагаар) бүртгэгдсэн ажлын тоо',
+    },
+  ];
 
   return (
-    <div className="space-y-3">
+    <div className="h-full flex flex-col gap-3">
       <p className="text-3xl font-black text-slate-900 dark:text-white">
         {total} <span className="text-sm font-bold text-slate-500 dark:text-slate-400">ажил бүртгэгдсэн</span>{' '}
         <InfoTip text="Өнөөдрийг оруулаад сүүлийн 7 хоногт (Улаанбаатарын цагаар) шинээр бүртгэгдсэн ажлын нийт тоо. Төлөвөөс үл хамаарна." />
       </p>
-      <div className="relative h-44 border-b border-slate-200 dark:border-slate-700" onMouseLeave={() => setActive(null)}>
+      {/* Хажуугийн картын өндрөөр сунаж, хоосон зай үлдээхгүй */}
+      <div className="relative flex-1 min-h-44 border-b border-slate-200 dark:border-slate-700" onMouseLeave={() => setActive(null)}>
         <div className="absolute inset-x-0 top-0 border-t border-slate-100 dark:border-slate-800" />
         <div className="absolute inset-x-0 top-1/2 border-t border-slate-100 dark:border-slate-800" />
         <div className="absolute inset-0 flex items-end gap-2 sm:gap-4">
@@ -165,6 +188,16 @@ function WeekChart({ data }: { data: DashboardOverview['lastWeek'] }) {
             </span>
           );
         })}
+      </div>
+      <div className="grid grid-cols-3 gap-2 sm:gap-3 pt-2">
+        {summary.map((s) => (
+          <div key={s.label} className="rounded-2xl bg-slate-50/70 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 px-3 py-2.5 min-w-0">
+            <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 dark:text-slate-500 flex items-center gap-1">
+              <span className="truncate">{s.label}</span> <InfoTip size={11} text={s.hint} />
+            </p>
+            <p className="text-sm sm:text-base font-black text-slate-900 dark:text-white tabular-nums truncate">{s.value}</p>
+          </div>
+        ))}
       </div>
       <table className="sr-only">
         <caption>Сүүлийн 7 хоногт бүртгэгдсэн ажил</caption>
@@ -227,7 +260,7 @@ export default function DashboardPage() {
 
   const alertParts: string[] = [];
   if (alerts.overdue > 0) alertParts.push(`${alerts.overdue} ажлын хугацаа хэтэрсэн`);
-  if (alerts.dueSoon > 0) alertParts.push(`${alerts.dueSoon} ажил 3 хоногийн дотор дуусах ёстой`);
+  if (alerts.dueSoon > 0) alertParts.push(`${alerts.dueSoon} ажил 3 хоногийн дотор (өнөөдрийг оруулаад) дуусах ёстой`);
   if (alerts.submissionsToday > 0) alertParts.push(`өнөөдөр ${alerts.submissionsToday} шинэ анкет ирсэн`);
   const alertText = alertParts.length
     ? `${alertParts.join(', ')}.`.replace(/^./, (c) => c.toUpperCase())
@@ -305,7 +338,7 @@ export default function DashboardPage() {
               <Briefcase size={22} />
             </div>
             {alerts.overdue > 0 && (
-              <Tooltip text="Хүлээгдэж буй эсвэл хийгдэж буй бөгөөд дуусах хугацаа нь өнгөрсөн ажлын тоо.">
+              <Tooltip text="Хүлээгдэж буй эсвэл хийгдэж буй бөгөөд дуусах өдөр нь өнгөрсөн ажлын тоо. Дуусах өдөртөө хоцорсонд тооцогдохгүй.">
                 <span className="inline-flex items-center gap-1 text-xs font-extrabold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/50 px-2.5 py-1 rounded-full">
                   <Clock size={14} aria-hidden /> {alerts.overdue} хоцорсон
                 </span>
@@ -330,7 +363,7 @@ export default function DashboardPage() {
             <DeltaBadge value={stats.revenue} />
           </div>
           <div>
-            <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-1 flex items-center gap-1.5">Энэ сарын орлого <InfoTip text="Энэ сарын 1-нээс хойш бүртгэгдсэн бөгөөд одоо “Дууссан” төлөвтэй ажлуудын үнийн нийлбэр. Хүлээгдэж буй, хийгдэж буй, цуцлагдсан ажлын үнэ орохгүй." /></h3>
+            <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-1 flex items-center gap-1.5">Энэ сарын орлого <InfoTip text="Энэ сарын 1-нээс хойш “Дууссан” төлөвт орсон ажлуудын үнийн нийлбэр (хэзээ бүртгэгдсэнээс үл хамаарна). Хүлээгдэж буй, хийгдэж буй, цуцлагдсан ажлын үнэ орохгүй." /></h3>
             <p className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">{formatMoney(stats.revenue.current)}</p>
           </div>
           <div className="pt-3 border-t border-slate-50 dark:border-slate-800 flex items-center justify-between text-xs text-slate-400">
@@ -361,13 +394,13 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* Last 7 days */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-xs space-y-6 flex flex-col justify-between">
-          <div>
+        <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-xs space-y-6 flex flex-col">
+          <div className="flex-1 flex flex-col">
             <div className="pb-4 border-b border-slate-100 dark:border-slate-800">
               <h2 className="font-extrabold text-base text-slate-900 dark:text-white">Сүүлийн 7 хоногийн ажил</h2>
               <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">Өдөр бүр бүртгэгдсэн ажлын тоо. Багана дээр очиж тухайн өдрийн тоог харна.</p>
             </div>
-            <div className="mt-6">
+            <div className="mt-6 flex-1">
               <WeekChart data={data.lastWeek} />
             </div>
           </div>
@@ -448,7 +481,7 @@ export default function DashboardPage() {
             <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 text-[11px] font-black uppercase tracking-wider mb-2">
               <BarChart3 size={13} /> Гүйцэтгэлийн статистик
             </div>
-            <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">Энэ сард дуусгасан ажил <InfoTip size={15} text="Ажилтанд хуваарилагдсан, “Дууссан” төлөвтэй бөгөөд энэ сард сүүлд шинэчлэгдсэн ажлуудыг тоолно. Эрэмбэ: дуусгасан ажлын тоо, тэнцвэл орлогоор." /></h2>
+            <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">Энэ сард дуусгасан ажил <InfoTip size={15} text="Энэ сарын 1-нээс хойш “Дууссан” төлөвт орсон, ажилтанд хуваарилагдсан ажлуудыг тоолно. Эрэмбэ: дуусгасан ажлын тоо, тэнцвэл орлогоор." /></h2>
             <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">Энэ сард хамгийн олон ажил дуусгасан 5 ажилтан</p>
           </div>
           <Link
