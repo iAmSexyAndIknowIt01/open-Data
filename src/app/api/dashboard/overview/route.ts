@@ -9,6 +9,8 @@ const toNumber = (value: unknown) => Number(value ?? 0);
 
 // GET: Хяналтын самбарын тойм — өнөөдөр болон энэ сарын байдал.
 // Сарын үзүүлэлтийг өмнөх сарын ижил хугацаатай (1-нээс өнөөдрийн огноо хүртэл) харьцуулна.
+// Орлого, дуусгасан ажлыг дууссан мөчөөр (completed_at) нь тухайн сард тооцно.
+// Хоцорсон/дөхсөн ажлыг аналитиктай адил Улаанбаатарын өдрөөр тооцно (дуусах өдөртөө хоцорсонд тооцогдохгүй).
 export async function GET() {
   try {
     const session = await getSession();
@@ -30,6 +32,9 @@ export async function GET() {
     const { month_start: monthStart, prev_month_start: prevMonthStart, prev_month_now: prevMonthNow, today_start: todayStart } =
       boundsResult.rows[0];
     const periodParams = [companyId, monthStart, prevMonthStart, prevMonthNow];
+    // Огноог SQL дотор тооцно (JS Date болгон дамжуулбал серверийн цагийн бүсээс хамаарч өдөр зөрнө)
+    const dueDay = `(due_date AT TIME ZONE '${TZ}')::date`;
+    const today = `(now() AT TIME ZONE '${TZ}')::date`;
 
     const [profile, works, customers, submissions, recentSubmissions, lastWeek, leaderboard] = await Promise.all([
       pool.query(
@@ -43,10 +48,11 @@ export async function GET() {
         `SELECT
            COUNT(*) FILTER (WHERE status = 'pending') AS pending,
            COUNT(*) FILTER (WHERE status = 'in_progress') AS in_progress,
-           COUNT(*) FILTER (WHERE status IN ${ACTIVE} AND due_date < now()) AS overdue,
-           COUNT(*) FILTER (WHERE status IN ${ACTIVE} AND due_date >= now() AND due_date < now() + interval '3 days') AS due_soon,
-           COALESCE(SUM(price) FILTER (WHERE status = 'completed' AND create_date >= $2), 0) AS revenue,
-           COALESCE(SUM(price) FILTER (WHERE status = 'completed' AND create_date >= $3 AND create_date < $4), 0) AS revenue_prev
+           COUNT(*) FILTER (WHERE status IN ${ACTIVE} AND ${dueDay} < ${today}) AS overdue,
+           -- Өнөөдөр болон дараагийн 2 өдөрт дуусах ёстой
+           COUNT(*) FILTER (WHERE status IN ${ACTIVE} AND ${dueDay} >= ${today} AND ${dueDay} < ${today} + 3) AS due_soon,
+           COALESCE(SUM(price) FILTER (WHERE status = 'completed' AND completed_at >= $2), 0) AS revenue,
+           COALESCE(SUM(price) FILTER (WHERE status = 'completed' AND completed_at >= $3 AND completed_at < $4), 0) AS revenue_prev
          FROM mt_works
          WHERE company_id = $1`,
         periodParams
@@ -106,7 +112,7 @@ export async function GET() {
          ORDER BY d.day`,
         [companyId]
       ),
-      // Энэ сард дуусгасан ажил: дууссан төлөвт орсон огноо нь update_date
+      // Энэ сард дуусгасан ажил: дууссан төлөвт орсон мөч (completed_at)
       pool.query(
         `SELECT
            u.user_id,
@@ -116,7 +122,7 @@ export async function GET() {
            COALESCE(SUM(w.price), 0) AS revenue
          FROM mt_works w
          JOIN mt_user u ON u.user_id = w.assigned_employee
-         WHERE w.company_id = $1 AND w.status = 'completed' AND w.update_date >= $2
+         WHERE w.company_id = $1 AND w.status = 'completed' AND w.completed_at >= $2
          GROUP BY u.user_id, u.last_name, u.first_name, u.position, u.role
          ORDER BY completed DESC, revenue DESC
          LIMIT 5`,

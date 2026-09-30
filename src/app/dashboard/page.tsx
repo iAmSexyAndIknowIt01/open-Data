@@ -227,7 +227,7 @@ export default function DashboardPage() {
 
   const alertParts: string[] = [];
   if (alerts.overdue > 0) alertParts.push(`${alerts.overdue} ажлын хугацаа хэтэрсэн`);
-  if (alerts.dueSoon > 0) alertParts.push(`${alerts.dueSoon} ажил 3 хоногийн дотор дуусах ёстой`);
+  if (alerts.dueSoon > 0) alertParts.push(`${alerts.dueSoon} ажил 3 хоногийн дотор (өнөөдрийг оруулаад) дуусах ёстой`);
   if (alerts.submissionsToday > 0) alertParts.push(`өнөөдөр ${alerts.submissionsToday} шинэ анкет ирсэн`);
   const alertText = alertParts.length
     ? `${alertParts.join(', ')}.`.replace(/^./, (c) => c.toUpperCase())
@@ -305,7 +305,7 @@ export default function DashboardPage() {
               <Briefcase size={22} />
             </div>
             {alerts.overdue > 0 && (
-              <Tooltip text="Хүлээгдэж буй эсвэл хийгдэж буй бөгөөд дуусах хугацаа нь өнгөрсөн ажлын тоо.">
+              <Tooltip text="Хүлээгдэж буй эсвэл хийгдэж буй бөгөөд дуусах өдөр нь өнгөрсөн ажлын тоо. Дуусах өдөртөө хоцорсонд тооцогдохгүй.">
                 <span className="inline-flex items-center gap-1 text-xs font-extrabold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/50 px-2.5 py-1 rounded-full">
                   <Clock size={14} aria-hidden /> {alerts.overdue} хоцорсон
                 </span>
@@ -330,7 +330,7 @@ export default function DashboardPage() {
             <DeltaBadge value={stats.revenue} />
           </div>
           <div>
-            <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-1 flex items-center gap-1.5">Энэ сарын орлого <InfoTip text="Энэ сарын 1-нээс хойш бүртгэгдсэн бөгөөд одоо “Дууссан” төлөвтэй ажлуудын үнийн нийлбэр. Хүлээгдэж буй, хийгдэж буй, цуцлагдсан ажлын үнэ орохгүй." /></h3>
+            <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-1 flex items-center gap-1.5">Энэ сарын орлого <InfoTip text="Энэ сарын 1-нээс хойш “Дууссан” төлөвт орсон ажлуудын үнийн нийлбэр (хэзээ бүртгэгдсэнээс үл хамаарна). Хүлээгдэж буй, хийгдэж буй, цуцлагдсан ажлын үнэ орохгүй." /></h3>
             <p className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">{formatMoney(stats.revenue.current)}</p>
           </div>
           <div className="pt-3 border-t border-slate-50 dark:border-slate-800 flex items-center justify-between text-xs text-slate-400">
@@ -448,7 +448,7 @@ export default function DashboardPage() {
             <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 text-[11px] font-black uppercase tracking-wider mb-2">
               <BarChart3 size={13} /> Гүйцэтгэлийн статистик
             </div>
-            <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">Энэ сард дуусгасан ажил <InfoTip size={15} text="Ажилтанд хуваарилагдсан, “Дууссан” төлөвтэй бөгөөд энэ сард сүүлд шинэчлэгдсэн ажлуудыг тоолно. Эрэмбэ: дуусгасан ажлын тоо, тэнцвэл орлогоор." /></h2>
+            <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">Энэ сард дуусгасан ажил <InfoTip size={15} text="Энэ сарын 1-нээс хойш “Дууссан” төлөвт орсон, ажилтанд хуваарилагдсан ажлуудыг тоолно. Эрэмбэ: дуусгасан ажлын тоо, тэнцвэл орлогоор." /></h2>
             <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">Энэ сард хамгийн олон ажил дуусгасан 5 ажилтан</p>
           </div>
           <Link
