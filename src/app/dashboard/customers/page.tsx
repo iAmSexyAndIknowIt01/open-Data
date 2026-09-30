@@ -7,6 +7,7 @@ import {
   X, CheckCircle2, LayoutList, LayoutGrid, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import Loading from '@/src/app/components/loading';
+import InfoTip from '@/src/app/components/InfoTip';
 
 interface Customer {
   customer_id: string;
@@ -258,7 +259,9 @@ function CustomersContent() {
               <thead>
                 <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 text-[11px] font-black uppercase text-slate-400 dark:text-slate-400 tracking-wider">
                   <th className="py-4 px-6">Харилцагч</th>
-                  <th className="py-4 px-6">Төрөл / ТТД</th>
+                  <th className="py-4 px-6">
+                    <span className="inline-flex items-center gap-1">Төрөл / ТТД <InfoTip size={12} text="Төрөл: хувь хүн эсвэл байгууллага. ТТД: татвар төлөгчийн дугаар (байгууллагын регистр)." /></span>
+                  </th>
                   <th className="py-4 px-6">Холбоо барих</th>
                   <th className="py-4 px-6">Хаяг</th>
                   <th className="py-4 px-6">Төлөв</th>

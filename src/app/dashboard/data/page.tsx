@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import Loading from '@/src/app/components/loading';
+import InfoTip from '@/src/app/components/InfoTip';
+import Tooltip from '@/src/app/components/Tooltip';
 
 interface DatasetSummary {
   key: string;
@@ -110,6 +112,7 @@ export default function DataPage() {
             <span className="text-slate-500 dark:text-slate-400">Нийт</span>
             <span className="font-black text-slate-900 dark:text-white">{totalRows.toLocaleString()}</span>
             <span className="text-slate-500 dark:text-slate-400">мөр</span>
+            <InfoTip text="Доорх бүх өгөгдлийн багцын мөрийн тооны нийлбэр. Нэг мөр = нэг бичлэг (харилцагч, ажил, анкет гэх мэт)." />
           </div>
         )}
       </div>
@@ -173,11 +176,15 @@ export default function DataPage() {
                 <div className="flex items-end justify-between gap-2">
                   <div>
                     <p className="text-2xl font-black text-slate-900 dark:text-white">{dataset.count.toLocaleString()}</p>
-                    <p className="text-xs text-slate-400 dark:text-slate-500">мөр</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1">
+                      мөр <InfoTip size={12} text={`Танай байгууллагын “${dataset.label}” багцад байгаа бүх бичлэгийн тоо. CSV татахад яг ийм тооны мөр гарна.`} />
+                    </p>
                   </div>
-                  <p className="text-xs text-slate-400 dark:text-slate-500 text-right">
-                    {dataset.lastUpdated ? `Сүүлд: ${dataset.lastUpdated}` : 'Өгөгдөлгүй'}
-                  </p>
+                  <Tooltip text={dataset.lastUpdated ? 'Хамгийн сүүлд нэмэгдсэн бичлэгийн огноо. Засвар хийсэн огноог тооцохгүй.' : 'Энэ багцад бичлэг алга'}>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 text-right cursor-help">
+                      {dataset.lastUpdated ? `Сүүлд: ${dataset.lastUpdated}` : 'Өгөгдөлгүй'}
+                    </p>
+                  </Tooltip>
                 </div>
 
                 <div className="flex gap-2 mt-auto">
