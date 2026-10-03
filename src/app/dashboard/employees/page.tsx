@@ -10,6 +10,7 @@ import {
 // Loading компонент оруулж ирэх хэсэг (зам болон нэрийг өөрийн төслийн бүтцээр шалгаарай)
 import Loading from '@/src/app/components/loading';
 import InfoTip from '@/src/app/components/InfoTip';
+import PasswordInput from '@/src/components/PasswordInput';
 
 interface User {
   user_id?: string;
@@ -403,8 +404,7 @@ function EmployeesContent() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Нууц үг</label>
-                  <input
-                    type="password"
+                  <PasswordInput
                     placeholder="••••••••"
                     required
                     minLength={8}
@@ -412,7 +412,7 @@ function EmployeesContent() {
                     title="Хамгийн багадаа 8 тэмдэгт, үсэг болон тоо агуулсан"
                     value={newUser.password}
                     onChange={(e) => setNewUser({...newUser, password: e.target.value})}
-                    className="w-full px-4 py-3 rounded-2xl bg-slate-50/80 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-800 dark:text-slate-100 focus:outline-hidden focus:border-blue-500 dark:focus:border-blue-400 focus:bg-white dark:focus:bg-slate-800 transition-all"
+                    className="w-full pl-4 pr-11 py-3 rounded-2xl bg-slate-50/80 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-medium text-slate-800 dark:text-slate-100 focus:outline-hidden focus:border-blue-500 dark:focus:border-blue-400 focus:bg-white dark:focus:bg-slate-800 transition-all"
                   />
                 </div>
                 <div className="space-y-1.5">

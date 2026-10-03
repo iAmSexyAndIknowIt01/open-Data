@@ -1,3 +1,4 @@
+import path from "node:path";
 import type { NextConfig } from "next";
 
 const isDev = process.env.NODE_ENV === "development";
@@ -32,6 +33,10 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   // "X-Powered-By: Next.js" header-ээр ашигласан технологийг ил болгохгүй
   poweredByHeader: false,
+  // Эх хавтсанд (C:\Users\tekeb) өөр package-lock.json байсан ч төслийн root-ыг энэ хавтас гэж тогтооно
+  turbopack: {
+    root: path.join(__dirname),
+  },
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },

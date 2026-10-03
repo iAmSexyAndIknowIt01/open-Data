@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Lock, Mail, User, Building2, Loader2, CheckCircle2 } from 'lucide-react';
 import LoadingComponent from '@/src/app/components/loading';
+import PasswordInput from '@/src/components/PasswordInput';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -217,18 +218,17 @@ export default function RegisterPage() {
               Нууц үг үүсгэх
             </label>
             <div className="relative">
-              <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 dark:text-slate-500">
+              <span className="absolute inset-y-0 left-0 pl-4 flex items-center z-10 pointer-events-none text-slate-400 dark:text-slate-500">
                 <Lock size={18} />
               </span>
-              <input 
-                type="password" 
+              <PasswordInput
                 name="password"
                 required
                 minLength={6}
                 value={formData.password}
                 onChange={handleChange}
                 placeholder="••••••••" 
-                className="w-full pl-11 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-2xl text-slate-900 dark:text-white text-sm focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 focus:bg-white dark:focus:bg-slate-800 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                className="w-full pl-11 pr-11 py-3.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-2xl text-slate-900 dark:text-white text-sm focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 focus:bg-white dark:focus:bg-slate-800 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
               />
             </div>
           </div>

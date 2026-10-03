@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { User, Building2, Mail, Phone, MapPin, Shield, CheckCircle2, Edit3, X, Save, Loader2, KeyRound } from 'lucide-react';
+import PasswordInput from '@/src/components/PasswordInput';
 
 export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
@@ -229,14 +230,13 @@ export default function ProfilePage() {
                   <label className="block text-xs font-bold text-amber-700 dark:text-amber-400 mb-1.5">
                     Имэйл солихын тулд одоогийн нууц үгээ оруулна уу
                   </label>
-                  <input
-                    type="password"
+                  <PasswordInput
                     name="currentPassword"
                     value={formData.currentPassword}
                     onChange={handleChange}
                     autoComplete="current-password"
                     placeholder="••••••••"
-                    className="w-full px-4 py-3 bg-amber-50/50 dark:bg-slate-800 border border-amber-200 dark:border-amber-900 rounded-2xl text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-blue-600 focus:bg-white dark:focus:bg-slate-900"
+                    className="w-full pl-4 pr-11 py-3 bg-amber-50/50 dark:bg-slate-800 border border-amber-200 dark:border-amber-900 rounded-2xl text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-blue-600 focus:bg-white dark:focus:bg-slate-900"
                   />
                 </div>
               )}
@@ -355,37 +355,34 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Хуучин нууц үг</label>
-                  <input 
-                    type="password" 
+                  <PasswordInput
                     name="currentPassword"
                     value={formData.currentPassword}
                     onChange={handleChange}
                     placeholder="••••••••"
-                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-blue-600 focus:bg-white dark:focus:bg-slate-900"
+                    className="w-full pl-4 pr-11 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-blue-600 focus:bg-white dark:focus:bg-slate-900"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Шинэ нууц үг</label>
-                  <input 
-                    type="password" 
+                  <PasswordInput
                     name="newPassword"
                     value={formData.newPassword}
                     onChange={handleChange}
                     placeholder="••••••••"
-                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-blue-600 focus:bg-white dark:focus:bg-slate-900"
+                    className="w-full pl-4 pr-11 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-blue-600 focus:bg-white dark:focus:bg-slate-900"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Шинэ нууц үг давтах</label>
-                  <input 
-                    type="password" 
+                  <PasswordInput
                     name="confirmPassword"
                     value={formData.confirmPassword}
                     onChange={handleChange}
                     placeholder="••••••••"
-                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-blue-600 focus:bg-white dark:focus:bg-slate-900"
+                    className="w-full pl-4 pr-11 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:border-blue-600 focus:bg-white dark:focus:bg-slate-900"
                   />
                 </div>
               </div>
