@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { ArrowLeft, Mail, KeyRound, Lock, Loader2, CheckCircle2 } from 'lucide-react';
 import LoadingComponent from '../components/loading';
+import PasswordInput from '@/src/components/PasswordInput';
 
 export default function ForgotPasswordPage() {
   const [step, setStep] = useState<'request' | 'reset'>('request');
@@ -223,16 +224,15 @@ export default function ForgotPasswordPage() {
                 Шинэ нууц үг
               </label>
               <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 dark:text-slate-500">
+                <span className="absolute inset-y-0 left-0 pl-4 flex items-center z-10 pointer-events-none text-slate-400 dark:text-slate-500">
                   <Lock size={18} />
                 </span>
-                <input 
-                  type="password" 
+                <PasswordInput
                   required
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="••••••••" 
-                  className="w-full pl-11 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 focus:bg-white dark:focus:bg-slate-800 transition-all"
+                  className="w-full pl-11 pr-11 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 focus:bg-white dark:focus:bg-slate-800 transition-all"
                 />
               </div>
             </div>
@@ -242,16 +242,15 @@ export default function ForgotPasswordPage() {
                 Шинэ нууц үг давтах
               </label>
               <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 dark:text-slate-500">
+                <span className="absolute inset-y-0 left-0 pl-4 flex items-center z-10 pointer-events-none text-slate-400 dark:text-slate-500">
                   <Lock size={18} />
                 </span>
-                <input 
-                  type="password" 
+                <PasswordInput
                   required
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="••••••••" 
-                  className="w-full pl-11 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 focus:bg-white dark:focus:bg-slate-800 transition-all"
+                  className="w-full pl-11 pr-11 py-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 focus:bg-white dark:focus:bg-slate-800 transition-all"
                 />
               </div>
             </div>
