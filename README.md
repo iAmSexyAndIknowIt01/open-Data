@@ -27,7 +27,7 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 | `DATABASE_URL` | PostgreSQL (Supabase) холболт |
 | `DB_POOL_MAX` | Нэг процессын DB холболтын дээд тоо (анхдагч 5) |
 | `SESSION_SECRET` | Session JWT болон нууц үг сэргээх кодын HMAC түлхүүр (32+ тэмдэгт санамсаргүй) |
-| `RESEND_API_KEY`, `EMAIL_FROM` | Имэйл илгээх (Resend). Тохируулаагүй бол dev-д console-д хэвлэнэ |
+| `GMAIL_USER`, `GMAIL_APP_PASSWORD` | Имэйл илгээх (Gmail SMTP, nodemailer). `GMAIL_APP_PASSWORD` нь Google бүртгэлийн App Password. Тохируулаагүй бол dev-д console-д хэвлэнэ |
 | `TRUSTED_PROXY_HOPS` | Апп хэдэн итгэмжлэгдсэн proxy / load balancer-ийн ард ажиллаж байгаа (анхдагч 1). Rate limit-д клиентийн IP-г `X-Forwarded-For`-ийн баруун талаас энэ тоогоор авна, ингэснээр IP-г хуурах боломжгүй. Proxy-гүй бол `0`. Vercel дээр хамаарахгүй |
 
 ## Learn More
